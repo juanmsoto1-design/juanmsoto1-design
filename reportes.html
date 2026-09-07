@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Reportes · Registro de Calificaciones</title>
+<link rel="stylesheet" href="css/style.css" />
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+@media print {
+  .topbar, .toolbar-actions, .back-link { display: none !important; }
+  .card { box-shadow: none; border: 1px solid #ccc; }
+}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <h1>📊 Reportes</h1>
+  <div class="user-info">
+    <span id="user-label"></span>
+    <button onclick="logout()">Salir</button>
+  </div>
+</div>
+
+<div class="container">
+  <a href="dashboard.html" class="back-link">← Volver a mis materias</a>
+
+  <div class="toolbar">
+    <h2 style="margin:0">Reporte de calificaciones por materia y profesor</h2>
+    <div class="toolbar-actions">
+      <button class="btn btn-secondary" onclick="window.print()">🖨 Imprimir / Exportar PDF</button>
+    </div>
+  </div>
+
+  <div id="resumen-general" class="card"></div>
+
+  <div id="reporte-por-profesor"></div>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/supabaseClient.js"></script>
+<script src="js/reportes.js"></script>
+</body>
+</html>

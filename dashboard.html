@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Mis Materias · Registro de Calificaciones</title>
+<link rel="stylesheet" href="css/style.css" />
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<div class="topbar">
+  <h1>📚 Registro de Calificaciones</h1>
+  <div class="user-info">
+    <span id="user-label"></span>
+    <button onclick="window.location.href='reportes.html'">📊 Reportes</button>
+    <button id="btn-admin" class="hidden" onclick="window.location.href='admin.html'">Administración</button>
+    <button onclick="abrirModalPassword()">Mi contraseña</button>
+    <button onclick="logout()">Salir</button>
+  </div>
+</div>
+
+<div class="container">
+  <div class="toolbar">
+    <h2 style="margin:0">Mis materias</h2>
+    <div class="toolbar-actions">
+      <button class="btn btn-primary" onclick="abrirModalMateria()">+ Nueva materia</button>
+    </div>
+  </div>
+
+  <div id="materias-grid" class="materia-grid"></div>
+  <div id="empty-state" class="empty-state hidden">Aún no hay materias registradas. Crea la primera con "+ Nueva materia".</div>
+</div>
+
+<div id="modal-materia" class="modal-backdrop hidden">
+  <div class="modal">
+    <h3>Nueva materia</h3>
+    <form id="form-materia">
+      <label for="m-nombre">Nombre de la materia</label>
+      <input id="m-nombre" required placeholder="Ej: Griego III" />
+      <label for="m-periodo">Periodo o cuatrimestre</label>
+      <input id="m-periodo" placeholder="Ej: Enero - Abril 2026" />
+      <div class="error-msg" id="materia-error"></div>
+      <div style="display:flex; gap:8px; justify-content:flex-end">
+        <button type="button" class="btn btn-secondary" onclick="cerrarModalMateria()">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Crear</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="modal-password" class="modal-backdrop hidden">
+  <div class="modal">
+    <h3>Cambiar mi contraseña</h3>
+    <form id="form-password">
+      <label for="p-nueva">Nueva contraseña</label>
+      <input id="p-nueva" type="password" minlength="6" required />
+      <div class="error-msg" id="password-error"></div>
+      <div style="display:flex; gap:8px; justify-content:flex-end">
+        <button type="button" class="btn btn-secondary" onclick="cerrarModalPassword()">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Guardar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/supabaseClient.js"></script>
+<script src="js/dashboard.js"></script>
+</body>
+</html>

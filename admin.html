@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Administración · Registro de Calificaciones</title>
+<link rel="stylesheet" href="css/style.css" />
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<div class="topbar">
+  <h1>🔑 Administración de usuarios</h1>
+  <div class="user-info">
+    <span id="user-label"></span>
+    <button onclick="logout()">Salir</button>
+  </div>
+</div>
+
+<div class="container">
+  <a href="dashboard.html" class="back-link">← Volver a mis materias</a>
+
+  <div class="card">
+    <h3 style="margin-top:0; color:#16305c;">Crear nuevo usuario</h3>
+    <p style="color:#6b7280; font-size:13px; margin-top:-8px;">No necesita correo electrónico: solo un nombre de usuario para iniciar sesión.</p>
+    <form id="form-crear-usuario">
+      <label for="u-nombre">Nombre completo</label>
+      <input id="u-nombre" required placeholder="Ej: Alexander Fernández" />
+      <label for="u-usuario">Usuario (sin espacios)</label>
+      <input id="u-usuario" required placeholder="Ej: alexander.fernandez" />
+      <label for="u-rol">Rol</label>
+      <select id="u-rol">
+        <option value="profesor">Profesor</option>
+        <option value="secretario">Secretario</option>
+        <option value="administrador">Administrador</option>
+      </select>
+      <label for="u-clave">Contraseña</label>
+      <input id="u-clave" type="text" required minlength="6" placeholder="Mínimo 6 caracteres" />
+      <div class="error-msg" id="crear-error"></div>
+      <button class="btn btn-primary" type="submit">Crear usuario</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0; color:#16305c;">Usuarios existentes</h3>
+    <div class="table-scroll" style="max-height:50vh">
+      <table>
+        <thead>
+          <tr><th class="nombre">Nombre</th><th>Usuario</th><th>Rol</th><th>Nueva contraseña</th></tr>
+        </thead>
+        <tbody id="tbody-usuarios"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/supabaseClient.js"></script>
+<script src="js/admin.js"></script>
+</body>
+</html>

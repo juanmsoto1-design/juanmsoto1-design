@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Entregar asignación · UNAD</title>
+<link rel="stylesheet" href="css/style.css" />
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<div class="login-wrapper">
+  <div class="card login-card" style="max-width:440px;">
+    <h1 style="font-size:20px;">📌 Entregar asignación</h1>
+    <p class="subtitle">UNAD</p>
+
+    <div id="paso-codigo">
+      <label for="in-codigo">Código de la asignación</label>
+      <input id="in-codigo" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" style="letter-spacing:4px; font-size:20px; text-align:center; font-weight:700;" placeholder="123456" />
+      <div class="error-msg" id="error-codigo"></div>
+      <button class="btn btn-primary" style="width:100%" onclick="buscarAsignacion()">Continuar</button>
+    </div>
+
+    <div id="paso-detalle" class="hidden">
+      <h3 id="det-titulo" style="color:#16305c; margin-bottom:4px;"></h3>
+      <p id="det-materia" style="color:#6b7280; font-size:13px; margin-top:0;"></p>
+      <div id="det-descripcion" style="font-size:14px; white-space:pre-wrap; background:#f5f7fa; border-radius:6px; padding:10px; margin-bottom:14px;"></div>
+      <p id="det-fecha" style="font-size:13px; color:#6b7280;"></p>
+
+      <label for="in-estudiante">Selecciona tu nombre</label>
+      <select id="in-estudiante" onchange="onCambioEstudiante()"></select>
+
+      <div id="estado-entrega" class="hidden" style="font-size:13px; padding:8px; border-radius:6px; margin-bottom:10px;"></div>
+
+      <div id="bloque-trabajo" class="hidden">
+        <label for="in-respuesta">Escribe aquí tu respuesta / desarrollo de la asignación</label>
+        <textarea id="in-respuesta" rows="8" style="width:100%; padding:10px 12px; border:1px solid #dfe3e8; border-radius:6px; font-size:14px; margin-bottom:14px; font-family:inherit; resize:vertical;" placeholder="Escribe tu trabajo aquí antes de enviar"></textarea>
+
+        <div class="error-msg" id="error-entrega"></div>
+        <button class="btn btn-primary" style="width:100%" id="btn-enviar" onclick="entregar()">Enviar asignación</button>
+        <button class="btn btn-secondary" style="width:100%; margin-top:8px;" onclick="verPosiciones()">🏆 Ver tabla de posiciones</button>
+      </div>
+
+      <div id="bloque-cuestionario-estudiante" class="hidden">
+        <div id="preguntas-cuestionario-cont" style="display:flex; flex-direction:column; gap:14px; margin-bottom:14px;"></div>
+        <div class="error-msg" id="error-cuestionario"></div>
+        <button class="btn btn-primary" style="width:100%" id="btn-enviar-cuestionario" onclick="entregarCuestionario()">Enviar cuestionario</button>
+        <button class="btn btn-secondary" style="width:100%; margin-top:8px;" onclick="verPosiciones()">🏆 Ver tabla de posiciones</button>
+      </div>
+
+      <div id="bloque-archivo-estudiante" class="hidden">
+        <div id="archivo-previo" style="font-size:13px; margin-bottom:10px;"></div>
+        <label for="in-archivo">Sube tu archivo (PDF, Word o PowerPoint)</label>
+        <input id="in-archivo" type="file" accept=".pdf,.doc,.docx,.ppt,.pptx" />
+        <div class="error-msg" id="error-archivo"></div>
+        <button class="btn btn-primary" style="width:100%" id="btn-enviar-archivo" onclick="subirArchivoEntrega()">Enviar archivo</button>
+        <button class="btn btn-secondary" style="width:100%; margin-top:8px;" onclick="verPosiciones()">🏆 Ver tabla de posiciones</button>
+      </div>
+
+      <button class="btn btn-secondary" style="width:100%; margin-top:8px;" onclick="reiniciar()">← Usar otro código</button>
+    </div>
+
+    <div id="paso-exito" class="hidden" style="text-align:center;">
+      <div style="font-size:40px;">✅</div>
+      <h3 style="color:#1e7a34;">¡Entrega registrada!</h3>
+      <p style="color:#6b7280; font-size:14px;">Tu profesor la revisará y asignará tu puntuación.</p>
+      <button class="btn btn-primary" style="width:100%;" onclick="verPosiciones()">🏆 Ver tabla de posiciones</button>
+      <button class="btn btn-secondary" style="width:100%; margin-top:8px;" onclick="reiniciar()">Entregar otra asignación</button>
+    </div>
+
+    <div id="paso-posiciones" class="hidden">
+      <h3 style="color:#16305c; margin-bottom:4px;">🏆 Tabla de posiciones</h3>
+      <p style="color:#6b7280; font-size:13px; margin-top:0;" id="pos-subtitulo"></p>
+      <div id="lista-posiciones"></div>
+      <button class="btn btn-secondary" style="width:100%; margin-top:14px;" onclick="verPosiciones()">↻ Actualizar</button>
+      <button class="btn btn-secondary" style="width:100%; margin-top:8px;" onclick="reiniciar()">← Usar otro código</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/config.js"></script>
+<script>
+window.sb = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
+let asignacionActual = null;
+let estudianteIdActual = null;
+let preguntasActuales = [];
+
+function mostrarPaso(paso) {
+  document.getElementById("paso-codigo").classList.toggle("hidden", paso !== "codigo");
+  document.getElementById("paso-detalle").classList.toggle("hidden", paso !== "detalle");
+  document.getElementById("paso-exito").classList.toggle("hidden", paso !== "exito");
+  document.getElementById("paso-posiciones").classList.toggle("hidden", paso !== "posiciones");
+}
+
+const EXTENSIONES_VALIDAS = [".pdf", ".doc", ".docx", ".ppt", ".pptx"];
+
+function escapeHtml(str) {
+  if (str === null || str === undefined) return "";
+  return String(str).replace(/[&<>"']/g, c => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  }[c]));
+}
+
+async function buscarAsignacion() {
+  const codigo = document.getElementById("in-codigo").value.replace(/\s+/g, "").trim();
+  document.getElementById("in-codigo").value = codigo;
+  const errorEl = document.getElementById("error-codigo");
+  errorEl.textContent = "";
+  if (!codigo) {
+    errorEl.textContent = "Escribe el código que te dio tu profesor.";
+    return;
+  }
+  const { data, error } = await window.sb.rpc("asignacion_por_codigo", { p_codigo: codigo });
+  if (error || !data || data.length === 0) {
+    errorEl.textContent = "Código no encontrado. Verifica con tu profesor.";
+    return;
+  }
+  asignacionActual = data[0];
+
+  const { data: ests, error: errEst } = await window.sb.rpc("estudiantes_por_codigo", { p_codigo: codigo });
+  if (errEst || !ests) {
+    errorEl.textContent = "No se pudo cargar la lista de estudiantes.";
+    return;
+  }
+
+  preguntasActuales = [];
+  if (asignacionActual.tipo === "cuestionario") {
+    const { data: preguntas, error: errPreg } = await window.sb.rpc("preguntas_por_codigo", { p_codigo: codigo });
+    if (errPreg) {
+      errorEl.textContent = "No se pudo cargar el cuestionario.";
+      return;
+    }
+    preguntasActuales = preguntas || [];
+  }
+
+  document.getElementById("det-titulo").textContent = asignacionActual.titulo;
+  document.getElementById("det-materia").textContent = asignacionActual.materia_nombre + ` · Vale ${asignacionActual.puntos} pts`;
+  document.getElementById("det-descripcion").textContent = asignacionActual.descripcion || "(Sin instrucciones adicionales)";
+  document.getElementById("det-fecha").textContent = asignacionActual.fecha_entrega
+    ? "Fecha de cierre: " + asignacionActual.fecha_entrega + (asignacionActual.hora_entrega ? " " + asignacionActual.hora_entrega.slice(0, 5) : "")
+    : "";
+
+  const select = document.getElementById("in-estudiante");
+  select.innerHTML = `<option value="">-- Selecciona tu nombre --</option>` +
+    ests.map(e => `<option value="${e.id}">${escapeHtml(e.nombre)}</option>`).join("");
+
+  document.getElementById("estado-entrega").classList.add("hidden");
+  document.getElementById("bloque-trabajo").classList.add("hidden");
+  document.getElementById("bloque-cuestionario-estudiante").classList.add("hidden");
+  document.getElementById("bloque-archivo-estudiante").classList.add("hidden");
+  document.getElementById("in-respuesta").value = "";
+  document.getElementById("in-archivo").value = "";
+  document.getElementById("error-archivo").textContent = "";
+
+  mostrarPaso("detalle");
+}
+
+function renderPreguntasCuestionario(respuestasPrevias, soloLectura) {
+  const cont = document.getElementById("preguntas-cuestionario-cont");
+  const mapaPrevias = {};
+  (respuestasPrevias || []).forEach(r => { mapaPrevias[r.pregunta_id] = r; });
+
+  cont.innerHTML = preguntasActuales.map((p, idx) => {
+    const previa = mapaPrevias[p.id];
+    const marcarResultado = soloLectura && previa
+      ? `<div style="font-size:12px; font-weight:700; margin-top:6px; color:${previa.es_correcta ? "#1e7a34" : "#b3261e"};">
+           ${previa.es_correcta ? "✓ Correcta" : "✗ Incorrecta"} · ${previa.puntos_obtenidos || 0} / ${p.puntos} pts
+         </div>`
+      : "";
+
+    let campo = "";
+    if (p.tipo === "opcion_multiple") {
+      const seleccionPrevia = previa ? previa.respuesta_dada : null;
+      campo = (p.opciones || []).map((op, oIdx) => `
+        <label style="display:flex; align-items:center; gap:8px; font-weight:400; margin:0 0 6px;">
+          <input type="radio" name="preg-${p.id}" value="${oIdx}" data-pregunta="${p.id}" class="input-cuestionario"
+            ${seleccionPrevia === oIdx ? "checked" : ""} ${soloLectura ? "disabled" : ""} />
+          ${escapeHtml(op)}
+        </label>
+      `).join("");
+    } else if (p.tipo === "verdadero_falso") {
+      const seleccionPrevia = previa ? previa.respuesta_dada : null;
+      campo = `
+        <label style="display:flex; align-items:center; gap:8px; font-weight:400; margin:0 0 6px;">
+          <input type="radio" name="preg-${p.id}" value="true" data-pregunta="${p.id}" class="input-cuestionario"
+            ${seleccionPrevia === true ? "checked" : ""} ${soloLectura ? "disabled" : ""} /> Verdadero
+        </label>
+        <label style="display:flex; align-items:center; gap:8px; font-weight:400; margin:0;">
+          <input type="radio" name="preg-${p.id}" value="false" data-pregunta="${p.id}" class="input-cuestionario"
+            ${seleccionPrevia === false ? "checked" : ""} ${soloLectura ? "disabled" : ""} /> Falso
+        </label>
+      `;
+    } else {
+      const textoPrevio = previa ? (previa.respuesta_dada || "") : "";
+      campo = `<input type="text" data-pregunta="${p.id}" class="input-cuestionario" style="margin:0;"
+        value="${escapeHtml(typeof textoPrevio === "string" ? textoPrevio : "")}" ${soloLectura ? "disabled" : ""} placeholder="Escribe tu respuesta" />`;
+    }
+
+    return `
+      <div style="border:1px solid #dfe3e8; border-radius:8px; padding:10px;">
+        <div style="font-weight:700; font-size:14px; color:#16305c; margin-bottom:8px;">
+          ${idx + 1}. ${escapeHtml(p.enunciado)} <small style="color:#6b7280; font-weight:400;">(${p.puntos} pts)</small>
+        </div>
+        ${campo}
+        ${marcarResultado}
+      </div>
+    `;
+  }).join("");
+}
+
+async function entregarCuestionario() {
+  const estudianteId = document.getElementById("in-estudiante").value;
+  const errorEl = document.getElementById("error-cuestionario");
+  errorEl.textContent = "";
+  if (!estudianteId) {
+    errorEl.textContent = "Selecciona tu nombre en la lista.";
+    return;
+  }
+
+  const respuestas = [];
+  for (const p of preguntasActuales) {
+    if (p.tipo === "opcion_multiple") {
+      const sel = document.querySelector(`input[name="preg-${p.id}"]:checked`);
+      if (!sel) { errorEl.textContent = "Responde todas las preguntas antes de enviar."; return; }
+      respuestas.push({ pregunta_id: p.id, respuesta: parseInt(sel.value, 10) });
+    } else if (p.tipo === "verdadero_falso") {
+      const sel = document.querySelector(`input[name="preg-${p.id}"]:checked`);
+      if (!sel) { errorEl.textContent = "Responde todas las preguntas antes de enviar."; return; }
+      respuestas.push({ pregunta_id: p.id, respuesta: sel.value === "true" });
+    } else {
+      const input = document.querySelector(`input[data-pregunta="${p.id}"].input-cuestionario`);
+      if (!input || !input.value.trim()) { errorEl.textContent = "Responde todas las preguntas antes de enviar."; return; }
+      respuestas.push({ pregunta_id: p.id, respuesta: input.value.trim() });
+    }
+  }
+
+  const codigo = document.getElementById("in-codigo").value.trim();
+  const { error } = await window.sb.rpc("entregar_cuestionario_por_codigo", {
+    p_codigo: codigo, p_estudiante_id: estudianteId, p_respuestas: respuestas
+  });
+  if (error) {
+    errorEl.textContent = error.message.includes("máximo de 2 intentos")
+      ? "Ya usaste tus 2 intentos permitidos para esta asignación."
+      : "No se pudo entregar: " + error.message;
+    return;
+  }
+  mostrarPaso("exito");
+}
+
+async function onCambioEstudiante() {
+  const estudianteId = document.getElementById("in-estudiante").value;
+  estudianteIdActual = estudianteId || null;
+  const estadoEl = document.getElementById("estado-entrega");
+  const bloqueTrabajo = document.getElementById("bloque-trabajo");
+  const bloqueCuestionario = document.getElementById("bloque-cuestionario-estudiante");
+  const bloqueArchivo = document.getElementById("bloque-archivo-estudiante");
+  const btnEnviar = document.getElementById("btn-enviar");
+  const btnEnviarCuestionario = document.getElementById("btn-enviar-cuestionario");
+  const btnEnviarArchivo = document.getElementById("btn-enviar-archivo");
+  document.getElementById("error-entrega").textContent = "";
+  document.getElementById("error-cuestionario").textContent = "";
+  document.getElementById("error-archivo").textContent = "";
+
+  const esCuestionario = asignacionActual && asignacionActual.tipo === "cuestionario";
+  const esArchivo = asignacionActual && asignacionActual.requiere_archivo;
+
+  if (!estudianteId) {
+    estadoEl.classList.add("hidden");
+    bloqueTrabajo.classList.add("hidden");
+    bloqueCuestionario.classList.add("hidden");
+    bloqueArchivo.classList.add("hidden");
+    return;
+  }
+
+  const codigo = document.getElementById("in-codigo").value.trim();
+  const { data, error } = await window.sb.rpc("mi_entrega_por_codigo", {
+    p_codigo: codigo, p_estudiante_id: estudianteId
+  });
+
+  const previa = (!error && data && data.length > 0) ? data[0] : null;
+  const intentosUsados = previa ? (previa.intentos || 1) : 0;
+  const yaCalificada = previa && previa.puntuacion !== null && previa.puntuacion !== undefined;
+
+  if (esArchivo) {
+    bloqueTrabajo.classList.add("hidden");
+    bloqueCuestionario.classList.add("hidden");
+    bloqueArchivo.classList.remove("hidden");
+    const previoEl = document.getElementById("archivo-previo");
+
+    if (!previa) {
+      estadoEl.classList.add("hidden");
+      previoEl.textContent = "";
+      btnEnviarArchivo.disabled = false;
+      btnEnviarArchivo.textContent = "Enviar archivo";
+      return;
+    }
+
+    previoEl.innerHTML = previa.archivo_url
+      ? `Ya subiste: <a href="${previa.archivo_url}" target="_blank" rel="noopener">${previa.archivo_nombre || "tu archivo"}</a>`
+      : "";
+
+    estadoEl.classList.remove("hidden");
+    if (yaCalificada) {
+      estadoEl.style.background = "#e3f6e8";
+      estadoEl.style.color = "#1e7a34";
+      estadoEl.innerHTML = `✓ Ya entregaste (intento ${intentosUsados}/2). <strong>Tu puntuación: ${previa.puntuacion} pts</strong>`;
+    } else {
+      estadoEl.style.background = "#eaf4fc";
+      estadoEl.style.color = "#16305c";
+      estadoEl.innerHTML = `Ya entregaste (intento ${intentosUsados}/2). Tu profesor aún no ha asignado la puntuación.`;
+    }
+
+    if (intentosUsados >= 2) {
+      btnEnviarArchivo.disabled = true;
+      btnEnviarArchivo.textContent = "Ya usaste tus 2 intentos permitidos";
+    } else {
+      btnEnviarArchivo.disabled = false;
+      btnEnviarArchivo.textContent = `Reenviar (intento ${intentosUsados + 1}/2)`;
+    }
+    return;
+  }
+
+  if (esCuestionario) {
+    bloqueTrabajo.classList.add("hidden");
+    bloqueCuestionario.classList.remove("hidden");
+
+    let respuestasPrevias = [];
+    if (previa) {
+      const { data: misRespuestas } = await window.sb.rpc("mis_respuestas_por_codigo", {
+        p_codigo: codigo, p_estudiante_id: estudianteId
+      });
+      respuestasPrevias = misRespuestas || [];
+    }
+    renderPreguntasCuestionario(respuestasPrevias, yaCalificada && intentosUsados >= 2);
+
+    if (!previa) {
+      estadoEl.classList.add("hidden");
+      btnEnviarCuestionario.disabled = false;
+      btnEnviarCuestionario.textContent = "Enviar cuestionario";
+      return;
+    }
+
+    estadoEl.classList.remove("hidden");
+    estadoEl.style.background = "#e3f6e8";
+    estadoEl.style.color = "#1e7a34";
+    estadoEl.innerHTML = `✓ Ya entregaste (intento ${intentosUsados}/2). <strong>Tu puntuación: ${previa.puntuacion} pts</strong>`;
+
+    if (intentosUsados >= 2) {
+      btnEnviarCuestionario.disabled = true;
+      btnEnviarCuestionario.textContent = "Ya usaste tus 2 intentos permitidos";
+    } else {
+      btnEnviarCuestionario.disabled = false;
+      btnEnviarCuestionario.textContent = `Reenviar (intento ${intentosUsados + 1}/2)`;
+    }
+    return;
+  }
+
+  bloqueCuestionario.classList.add("hidden");
+  bloqueArchivo.classList.add("hidden");
+  bloqueTrabajo.classList.remove("hidden");
+  document.getElementById("in-respuesta").value = previa ? (previa.respuesta || "") : "";
+
+  if (!previa) {
+    estadoEl.classList.add("hidden");
+    btnEnviar.disabled = false;
+    btnEnviar.textContent = "Enviar asignación";
+    return;
+  }
+
+  estadoEl.classList.remove("hidden");
+
+  if (yaCalificada) {
+    estadoEl.style.background = "#e3f6e8";
+    estadoEl.style.color = "#1e7a34";
+    estadoEl.innerHTML = `✓ Ya entregaste (intento ${intentosUsados}/2). <strong>Tu puntuación: ${previa.puntuacion} pts</strong>`;
+  } else {
+    estadoEl.style.background = "#eaf4fc";
+    estadoEl.style.color = "#16305c";
+    estadoEl.innerHTML = `Ya entregaste (intento ${intentosUsados}/2). Tu profesor aún no ha asignado la puntuación.`;
+  }
+
+  if (intentosUsados >= 2) {
+    btnEnviar.disabled = true;
+    btnEnviar.textContent = "Ya usaste tus 2 intentos permitidos";
+  } else {
+    btnEnviar.disabled = false;
+    btnEnviar.textContent = `Reenviar (intento ${intentosUsados + 1}/2)`;
+  }
+}
+
+async function subirArchivoEntrega() {
+  const estudianteId = document.getElementById("in-estudiante").value;
+  const errorEl = document.getElementById("error-archivo");
+  errorEl.textContent = "";
+  if (!estudianteId) {
+    errorEl.textContent = "Selecciona tu nombre en la lista.";
+    return;
+  }
+  const input = document.getElementById("in-archivo");
+  const file = input.files[0];
+  if (!file) {
+    errorEl.textContent = "Selecciona un archivo antes de enviar.";
+    return;
+  }
+  const extension = "." + file.name.split(".").pop().toLowerCase();
+  if (!EXTENSIONES_VALIDAS.includes(extension)) {
+    errorEl.textContent = "Formato no permitido. Sube un archivo PDF, Word (.doc/.docx) o PowerPoint (.ppt/.pptx).";
+    return;
+  }
+
+  const btn = document.getElementById("btn-enviar-archivo");
+  btn.disabled = true;
+  btn.textContent = "Subiendo...";
+
+  const codigo = document.getElementById("in-codigo").value.trim();
+  const ruta = `${asignacionActual.id}/${estudianteId}-${Date.now()}${extension}`;
+
+  const { error: errSubida } = await window.sb.storage
+    .from("entregas-archivos")
+    .upload(ruta, file, { upsert: true });
+
+  if (errSubida) {
+    errorEl.textContent = "No se pudo subir el archivo: " + errSubida.message;
+    btn.disabled = false;
+    btn.textContent = "Enviar archivo";
+    return;
+  }
+
+  const { data: urlData } = window.sb.storage.from("entregas-archivos").getPublicUrl(ruta);
+
+  const { error } = await window.sb.rpc("entregar_archivo_por_codigo", {
+    p_codigo: codigo, p_estudiante_id: estudianteId,
+    p_archivo_url: urlData.publicUrl, p_archivo_nombre: file.name
+  });
+
+  if (error) {
+    errorEl.textContent = error.message.includes("máximo de 2 intentos")
+      ? "Ya usaste tus 2 intentos permitidos para esta asignación."
+      : "No se pudo entregar: " + error.message;
+    btn.disabled = false;
+    btn.textContent = "Enviar archivo";
+    return;
+  }
+  mostrarPaso("exito");
+}
+
+async function entregar() {
+  const estudianteId = document.getElementById("in-estudiante").value;
+  const respuesta = document.getElementById("in-respuesta").value.trim();
+  const errorEl = document.getElementById("error-entrega");
+  errorEl.textContent = "";
+  if (!estudianteId) {
+    errorEl.textContent = "Selecciona tu nombre en la lista.";
+    return;
+  }
+  if (!respuesta) {
+    errorEl.textContent = "Escribe tu respuesta antes de enviar.";
+    return;
+  }
+  const codigo = document.getElementById("in-codigo").value.trim();
+  const { error } = await window.sb.rpc("entregar_por_codigo", {
+    p_codigo: codigo, p_estudiante_id: estudianteId, p_respuesta: respuesta || null
+  });
+  if (error) {
+    errorEl.textContent = error.message.includes("máximo de 2 intentos")
+      ? "Ya usaste tus 2 intentos permitidos para esta asignación."
+      : "No se pudo entregar: " + error.message;
+    return;
+  }
+  mostrarPaso("exito");
+}
+
+function reiniciar() {
+  document.getElementById("in-codigo").value = "";
+  document.getElementById("error-codigo").textContent = "";
+  document.getElementById("estado-entrega").classList.add("hidden");
+  document.getElementById("bloque-trabajo").classList.add("hidden");
+  document.getElementById("bloque-cuestionario-estudiante").classList.add("hidden");
+  document.getElementById("bloque-archivo-estudiante").classList.add("hidden");
+  estudianteIdActual = null;
+  preguntasActuales = [];
+  asignacionActual = null;
+  mostrarPaso("codigo");
+}
+
+async function verPosiciones() {
+  const codigo = document.getElementById("in-codigo").value.trim();
+  const cont = document.getElementById("lista-posiciones");
+  const sub = document.getElementById("pos-subtitulo");
+  mostrarPaso("posiciones");
+  cont.innerHTML = `<p style="color:#6b7280; font-size:13px;">Cargando...</p>`;
+  sub.textContent = "";
+
+  const { data, error } = await window.sb.rpc("tabla_posiciones_por_codigo", { p_codigo: codigo });
+
+  if (error) {
+    cont.innerHTML = `<p class="error-msg">No se pudo cargar la tabla: ${escapeHtml(error.message)}</p>`;
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    sub.textContent = "Aún no hay entregas calificadas para esta asignación.";
+    cont.innerHTML = "";
+    return;
+  }
+
+  const medallas = ["🥇", "🥈", "🥉"];
+  sub.textContent = `${data.length} entrega(s) calificada(s) — ordenadas de mayor a menor puntuación.`;
+
+  cont.innerHTML = `
+    <div style="display:flex; flex-direction:column; gap:6px; max-height:50vh; overflow-y:auto;">
+      ${data.map((row, i) => {
+        const esYo = estudianteIdActual && row.estudiante_id === estudianteIdActual;
+        return `
+          <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 12px; border-radius:8px;
+            background:${esYo ? "#eaf4fc" : "#f5f7fa"}; border:${esYo ? "2px solid #00aeef" : "1px solid #dfe3e8"};">
+            <span style="font-weight:700; color:#16305c;">
+              ${i < 3 ? medallas[i] : (i + 1) + "."} ${escapeHtml(row.nombre)} ${esYo ? " (tú)" : ""}
+            </span>
+            <span style="font-weight:800; color:#00aeef;">${row.puntuacion} pts</span>
+          </div>
+        `;
+      }).join("")}
+    </div>
+  `;
+
+  if (estudianteIdActual) {
+    const miPos = data.findIndex(r => r.estudiante_id === estudianteIdActual);
+    if (miPos === -1) {
+      sub.textContent += " Tu entrega aún no ha sido calificada.";
+    } else {
+      sub.textContent += ` Quedaste en el puesto #${miPos + 1}.`;
+    }
+  }
+}
+
+// Si viene con ?codigo=XXXX en el link, autocompleta y busca directo
+(function () {
+  const params = new URLSearchParams(window.location.search);
+  const codigo = params.get("codigo");
+  if (codigo) {
+    document.getElementById("in-codigo").value = codigo.toUpperCase();
+    buscarAsignacion();
+  }
+})();
+</script>
+</body>
+</html>

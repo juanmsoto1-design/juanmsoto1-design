@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Registro de estudiante · UNAD</title>
+<link rel="stylesheet" href="css/style.css" />
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<div class="login-wrapper">
+  <div class="card login-card" style="max-width:420px;">
+    <h1 style="font-size:20px;">📝 Registro de estudiante</h1>
+    <p class="subtitle">UNAD</p>
+
+    <div id="paso-form">
+      <label for="in-codigo">Código de la materia</label>
+      <input id="in-codigo" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" style="letter-spacing:4px; font-size:20px; text-align:center; font-weight:700;" placeholder="123456" />
+
+      <label for="in-nombre">Nombre completo</label>
+      <input id="in-nombre" type="text" placeholder="Tu nombre completo" />
+
+      <label for="in-correo">Correo electrónico</label>
+      <input id="in-correo" type="email" placeholder="tucorreo@ejemplo.com" />
+
+      <label for="in-matricula">Matrícula</label>
+      <input id="in-matricula" type="text" placeholder="Tu número de matrícula" />
+
+      <div class="error-msg" id="error-registro"></div>
+      <button class="btn btn-primary" style="width:100%" onclick="registrarme()">Registrarme</button>
+    </div>
+
+    <div id="paso-exito" class="hidden" style="text-align:center;">
+      <div style="font-size:40px;">✅</div>
+      <h3 style="color:#1e7a34;">¡Registrado!</h3>
+      <p style="color:#6b7280; font-size:14px;">Ya quedaste agregado a la materia. Tu profesor podrá calificarte a partir de ahora.</p>
+      <button class="btn btn-secondary" style="width:100%;" onclick="window.location.href='entrar.html'">Ir a entregar una asignación</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/config.js"></script>
+<script>
+window.sb = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
+
+async function registrarme() {
+  const codigo = document.getElementById("in-codigo").value.replace(/\s+/g, "").trim();
+  const nombre = document.getElementById("in-nombre").value.trim();
+  const correo = document.getElementById("in-correo").value.trim();
+  const matricula = document.getElementById("in-matricula").value.trim();
+  const errorEl = document.getElementById("error-registro");
+  errorEl.textContent = "";
+
+  if (!codigo) {
+    errorEl.textContent = "Escribe el código de la materia que te dio tu profesor.";
+    return;
+  }
+  if (!nombre) {
+    errorEl.textContent = "Escribe tu nombre completo.";
+    return;
+  }
+
+  const { error } = await window.sb.rpc("registrar_estudiante_por_codigo", {
+    p_codigo_registro: codigo,
+    p_nombre: nombre,
+    p_correo: correo || null,
+    p_matricula: matricula || null
+  });
+
+  if (error) {
+    errorEl.textContent = error.message.includes("no encontrado")
+      ? "Código de materia no encontrado. Verifica con tu profesor."
+      : "No se pudo registrar: " + error.message;
+    return;
+  }
+
+  document.getElementById("paso-form").classList.add("hidden");
+  document.getElementById("paso-exito").classList.remove("hidden");
+}
+
+// Si viene con ?codigo=XXXX en el link, autocompleta
+(function () {
+  const params = new URLSearchParams(window.location.search);
+  const codigo = params.get("codigo");
+  if (codigo) {
+    document.getElementById("in-codigo").value = codigo;
+  }
+})();
+</script>
+</body>
+</html>

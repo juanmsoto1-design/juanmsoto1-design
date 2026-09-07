@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Materia · Registro de Calificaciones</title>
+<link rel="stylesheet" href="css/style.css" />
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+<div class="topbar">
+  <h1 id="materia-titulo">📚 Materia</h1>
+  <div class="user-info">
+    <span id="user-label"></span>
+    <button onclick="logout()">Salir</button>
+  </div>
+</div>
+
+<div class="container">
+  <a href="dashboard.html" class="back-link">← Volver a mis materias</a>
+
+  <div class="toolbar">
+    <div>
+      <div id="materia-periodo" style="color:#6b7280; font-size:14px;"></div>
+      <div class="saving-indicator" id="saving-indicator"></div>
+    </div>
+    <div class="toolbar-actions">
+      <button class="btn btn-secondary" onclick="abrirModalMateriaInfo()">✎ Editar materia</button>
+      <button class="btn btn-secondary" onclick="abrirModalComponentes()">⚙ Componentes</button>
+      <button class="btn btn-secondary" onclick="abrirModalEstudiante()">+ Estudiante</button>
+      <button class="btn btn-secondary" onclick="document.getElementById('input-excel').click()">⇪ Subir Excel</button>
+      <button class="btn btn-secondary" onclick="abrirModalRegistro()">🔗 Link de auto-registro</button>
+      <button class="btn btn-danger" onclick="eliminarTodosEstudiantes()">🗑 Eliminar todos los estudiantes</button>
+      <button class="btn btn-secondary" onclick="abrirModalAsignaciones()">📌 Asignaciones</button>
+      <button class="btn btn-secondary" onclick="abrirReporteAsignaciones()">📈 Reporte de asignaciones</button>
+      <button class="btn btn-secondary" onclick="abrirReporteFinal()">📄 Reporte final de la materia</button>
+      <button class="btn btn-secondary hidden" id="btn-secretarios" onclick="abrirModalSecretarios()">👥 Secretarios</button>
+      <button class="btn btn-danger" onclick="eliminarMateria()">🗑 Eliminar materia</button>
+      <input type="file" id="input-excel" accept=".xlsx,.xls" class="hidden" />
+    </div>
+  </div>
+
+  <div id="alerta-riesgo" class="card hidden" style="border-left:4px solid #b3261e; background:#fff8f7;"></div>
+
+  <div id="reporte-card" class="card" style="display:flex; gap:24px; flex-wrap:wrap; align-items:center;">
+    <div><strong id="rep-total">0</strong><br><small style="color:#6b7280">Estudiantes</small></div>
+    <div><strong id="rep-aprobados" style="color:#1e7a34">0</strong><br><small style="color:#6b7280">Aprobados</small></div>
+    <div><strong id="rep-reprobados" style="color:#b3261e">0</strong><br><small style="color:#6b7280">Reprobados</small></div>
+    <div><strong id="rep-porcentaje">0%</strong><br><small style="color:#6b7280">% Aprobación</small></div>
+  </div>
+
+  <div class="table-scroll">
+    <table id="tabla-notas">
+      <thead><tr id="thead-row"></tr></thead>
+      <tbody id="tbody-notas"></tbody>
+    </table>
+  </div>
+  <div id="empty-state" class="empty-state hidden"></div>
+</div>
+
+<!-- Modal editar info materia -->
+<div id="modal-materia-info" class="modal-backdrop hidden">
+  <div class="modal">
+    <h3>Editar materia</h3>
+    <form id="form-materia-info">
+      <label for="mi-nombre">Nombre de la materia</label>
+      <input id="mi-nombre" required />
+      <label for="mi-periodo">Periodo o cuatrimestre</label>
+      <input id="mi-periodo" placeholder="Ej: Enero - Abril 2026" />
+      <div class="error-msg" id="materia-info-error"></div>
+      <div style="display:flex; gap:8px; justify-content:flex-end">
+        <button type="button" class="btn btn-secondary" onclick="cerrarModal('modal-materia-info')">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Guardar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal componentes (crear / editar / eliminar) -->
+<div id="modal-componentes" class="modal-backdrop hidden">
+  <div class="modal" style="max-width:520px;">
+    <h3>Componentes de nota</h3>
+    <div id="lista-componentes" style="max-height:260px; overflow-y:auto; margin-bottom:14px;"></div>
+    <form id="form-componente">
+      <label for="c-nombre">Nuevo componente</label>
+      <input id="c-nombre" required placeholder="Ej: Quizz 1" />
+      <label for="c-puntos">Puntos máximos</label>
+      <input id="c-puntos" type="number" step="0.01" required />
+      <div class="error-msg" id="componente-error"></div>
+      <div style="display:flex; gap:8px; justify-content:flex-end">
+        <button type="button" class="btn btn-secondary" onclick="cerrarModal('modal-componentes')">Cerrar</button>
+        <button type="submit" class="btn btn-primary">Agregar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal asignaciones -->
+<div id="modal-asignaciones" class="modal-backdrop hidden">
+  <div class="modal" style="max-width:720px;">
+    <h3>Asignaciones</h3>
+    <p style="color:#6b7280; font-size:13px; margin-top:-8px;">Cada asignación genera un código para que los estudiantes entren desde su celular o laptop, la entreguen, y la nota se sume automáticamente a su calificación.</p>
+    <div id="lista-asignaciones" style="max-height:300px; overflow-y:auto; margin-bottom:14px;"></div>
+    <form id="form-asignacion">
+      <label for="a-titulo">Título de la asignación</label>
+      <input id="a-titulo" required placeholder="Ej: Ensayo capítulo 3" />
+
+      <label for="a-tipo">Tipo de asignación</label>
+      <select id="a-tipo" onchange="onCambioTipoAsignacion()">
+        <option value="texto_libre">Texto libre (ensayo corto, desarrollo)</option>
+        <option value="cuestionario">Cuestionario (selección múltiple, V/F, completar)</option>
+        <option value="ensayo">Ensayo (con archivo PDF/Word)</option>
+        <option value="reporte_lectura">Reporte de lectura (con archivo PDF/Word)</option>
+        <option value="exegesis">Exégesis (con archivo PDF/Word)</option>
+        <option value="presentacion">Presentación PPT (con archivo)</option>
+      </select>
+
+      <label for="a-descripcion">Descripción / instrucciones (opcional)</label>
+      <textarea id="a-descripcion" rows="4" placeholder="Escribe aquí instrucciones generales o el contenido de la asignación" style="width:100%; padding:10px 12px; border:1px solid var(--borde); border-radius:6px; font-size:14px; margin-bottom:14px; font-family:inherit; resize:vertical;"></textarea>
+
+      <div style="display:flex; gap:10px;">
+        <div style="flex:1;">
+          <label for="a-fecha-asignada">Fecha asignada</label>
+          <input id="a-fecha-asignada" type="date" />
+        </div>
+        <div style="flex:1;">
+          <label for="a-fecha-entrega">Fecha de cierre</label>
+          <input id="a-fecha-entrega" type="date" />
+        </div>
+        <div style="flex:1;">
+          <label for="a-hora-entrega">Hora de cierre</label>
+          <input id="a-hora-entrega" type="time" />
+        </div>
+        <div style="flex:1;" id="bloque-puntos-libre">
+          <label for="a-puntos">Puntos</label>
+          <input id="a-puntos" type="number" step="0.01" required placeholder="Ej: 10" />
+        </div>
+      </div>
+
+      <div id="bloque-archivo-info" class="hidden" style="background:#eaf4fc; border-radius:6px; padding:10px; font-size:13px; color:#16305c; margin-bottom:14px;">
+        📎 El estudiante deberá subir un archivo (PDF, Word o PowerPoint) para entregar esta asignación.
+      </div>
+
+      <!-- Constructor de preguntas para asignaciones tipo cuestionario -->
+      <div id="bloque-cuestionario" class="hidden">
+        <label>Puntos totales del cuestionario: <strong id="cuestionario-total-puntos">0</strong> (suma automática de las preguntas)</label>
+        <div id="preguntas-builder-cont" style="display:flex; flex-direction:column; gap:12px; margin-bottom:12px;"></div>
+        <button type="button" class="btn btn-secondary" style="margin-bottom:14px;" onclick="agregarPreguntaBuilder()">+ Agregar pregunta</button>
+      </div>
+
+      <div class="error-msg" id="asignacion-error"></div>
+      <div style="display:flex; gap:8px; justify-content:flex-end">
+        <button type="button" class="btn btn-secondary" onclick="cerrarModal('modal-asignaciones')">Cerrar</button>
+        <button type="submit" class="btn btn-primary">Crear asignación y generar código</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal reporte general de asignaciones -->
+<div id="modal-reporte-asignaciones" class="modal-backdrop hidden">
+  <div class="modal" style="max-width:800px;">
+    <h3>Reporte de asignaciones (toda la clase)</h3>
+    <div id="reporte-asignaciones-cont" style="max-height:60vh; overflow-y:auto;"></div>
+    <div style="display:flex; justify-content:flex-end; margin-top:14px;">
+      <button type="button" class="btn btn-secondary" onclick="cerrarModal('modal-reporte-asignaciones')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal reporte final de la materia (aprobados/reprobados por estudiante) -->
+<div id="modal-reporte-final" class="modal-backdrop hidden">
+  <div class="modal" style="max-width:800px;">
+    <h3>Reporte final de la materia</h3>
+    <div id="reporte-final-cont" style="max-height:65vh; overflow-y:auto;"></div>
+    <div style="display:flex; justify-content:flex-end; margin-top:14px;">
+      <button type="button" class="btn btn-secondary" onclick="cerrarModal('modal-reporte-final')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal secretarios de la materia -->
+<div id="modal-secretarios" class="modal-backdrop hidden">
+  <div class="modal" style="max-width:560px;">
+    <h3>Secretarios con acceso a esta materia</h3>
+    <p style="color:#6b7280; font-size:13px; margin-top:-8px;">Solo tú (o un administrador) puedes dar o quitar acceso. El secretario solo verá y podrá manejar esta materia.</p>
+    <div id="lista-secretarios" style="max-height:180px; overflow-y:auto; margin-bottom:16px;"></div>
+
+    <div style="border-top:1px solid var(--borde); padding-top:12px; margin-bottom:12px;">
+      <label for="sec-usuario-existente">Dar acceso a un secretario que ya tiene cuenta</label>
+      <div style="display:flex; gap:8px;">
+        <input id="sec-usuario-existente" placeholder="usuario (sin espacios)" style="margin:0;" />
+        <button type="button" class="btn btn-secondary" onclick="darAccesoSecretarioExistente()">Dar acceso</button>
+      </div>
+    </div>
+
+    <div style="border-top:1px solid var(--borde); padding-top:12px;">
+      <label>Crear un secretario nuevo y darle acceso directo</label>
+      <form id="form-crear-secretario">
+        <input id="sec-nombre" required placeholder="Nombre completo" />
+        <input id="sec-usuario" required placeholder="Usuario (sin espacios)" />
+        <input id="sec-clave" type="text" required minlength="6" placeholder="Contraseña (mínimo 6 caracteres)" />
+        <button type="submit" class="btn btn-primary" style="width:100%;">Crear y dar acceso</button>
+      </form>
+    </div>
+
+    <div class="error-msg" id="secretarios-error"></div>
+    <div style="display:flex; justify-content:flex-end; margin-top:10px;">
+      <button type="button" class="btn btn-secondary" onclick="cerrarModal('modal-secretarios')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal nuevo estudiante -->
+<div id="modal-estudiante" class="modal-backdrop hidden">
+  <div class="modal">
+    <h3>Nuevo estudiante</h3>
+    <form id="form-estudiante">
+      <label for="e-nombre">Nombre completo</label>
+      <input id="e-nombre" required />
+      <label for="e-correo">Correo (opcional)</label>
+      <input id="e-correo" type="email" />
+      <label for="e-matricula">Matrícula (opcional)</label>
+      <input id="e-matricula" />
+      <div class="error-msg" id="estudiante-error"></div>
+      <div style="display:flex; gap:8px; justify-content:flex-end">
+        <button type="button" class="btn btn-secondary" onclick="cerrarModal('modal-estudiante')">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Agregar</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal link de auto-registro de estudiantes -->
+<div id="modal-registro" class="modal-backdrop hidden">
+  <div class="modal" style="max-width:420px; text-align:center;">
+    <h3>Link de auto-registro</h3>
+    <p style="color:#6b7280; font-size:13px; margin-top:-8px;">Comparte este link o código QR con tus estudiantes. Al llenar el formulario quedan agregados automáticamente a esta materia.</p>
+    <div id="qr-registro" style="display:flex; justify-content:center; margin:14px 0;"></div>
+    <div style="font-size:11px; color:#6b7280;">CÓDIGO DE MATERIA</div>
+    <div id="registro-codigo" style="font-size:22px; font-weight:700; letter-spacing:3px; color:#16305c; margin-bottom:10px;"></div>
+    <button type="button" class="btn btn-secondary" style="width:100%; margin-bottom:8px;" onclick="copiarLinkRegistro()">Copiar link de registro</button>
+    <button type="button" class="btn btn-secondary" style="width:100%;" onclick="cerrarModal('modal-registro')">Cerrar</button>
+  </div>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/supabaseClient.js"></script>
+<script src="js/materia.js"></script>
+</body>
+</html>

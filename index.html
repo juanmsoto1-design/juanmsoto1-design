@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Registro de Calificaciones</title>
+<link rel="stylesheet" href="css/style.css" />
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<div class="login-wrapper">
+  <div class="card login-card">
+    <h1>Registro de Calificaciones</h1>
+    <p class="subtitle">UNAD</p>
+
+    <div class="tabs">
+      <button id="tab-login" class="active" onclick="switchTab('login')">Iniciar sesión</button>
+      <button id="tab-signup" onclick="switchTab('signup')">Crear cuenta</button>
+    </div>
+
+    <div id="panel-login">
+      <form id="form-login">
+        <label for="login-email">Usuario o correo</label>
+        <input id="login-email" type="text" required autocomplete="username" />
+        <label for="login-pass">Contraseña</label>
+        <input id="login-pass" type="password" required autocomplete="current-password" />
+        <div class="error-msg" id="login-error"></div>
+        <div id="login-info" style="font-size:13px; color:#1e7a34; margin:-6px 0 12px; min-height:16px;"></div>
+        <button class="btn btn-primary" style="width:100%" type="submit">Entrar</button>
+      </form>
+      <button type="button" class="btn btn-secondary" style="width:100%; margin-top:10px;" onclick="olvideContrasena()">¿Olvidaste tu contraseña?</button>
+    </div>
+
+    <div id="panel-signup" class="hidden">
+      <form id="form-signup">
+        <label for="signup-name">Nombre completo</label>
+        <input id="signup-name" type="text" required />
+        <label for="signup-role">Rol</label>
+        <select id="signup-role">
+          <option value="profesor">Profesor</option>
+          <option value="secretario">Secretario</option>
+        </select>
+        <label for="signup-email">Correo</label>
+        <input id="signup-email" type="email" required autocomplete="email" />
+        <label for="signup-pass">Contraseña</label>
+        <input id="signup-pass" type="password" required minlength="6" autocomplete="new-password" />
+        <div class="error-msg" id="signup-error"></div>
+        <button class="btn btn-primary" style="width:100%" type="submit">Crear cuenta</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/supabaseClient.js"></script>
+<script>
+function switchTab(tab) {
+  document.getElementById("tab-login").classList.toggle("active", tab === "login");
+  document.getElementById("tab-signup").classList.toggle("active", tab === "signup");
+  document.getElementById("panel-login").classList.toggle("hidden", tab !== "login");
+  document.getElementById("panel-signup").classList.toggle("hidden", tab !== "signup");
+}
+
+document.getElementById("form-login").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  let email = document.getElementById("login-email").value.trim();
+  if (email && !email.includes("@")) {
+    email = email.toLowerCase().replace(/[^a-z0-9._-]/g, "") + "@unad.local";
+  }
+  const password = document.getElementById("login-pass").value;
+  const errorEl = document.getElementById("login-error");
+  errorEl.textContent = "";
+  const { error } = await window.sb.auth.signInWithPassword({ email, password });
+  if (error) {
+    errorEl.textContent = "Correo o contraseña incorrectos.";
+    return;
+  }
+  window.location.href = "dashboard.html";
+});
+
+document.getElementById("form-signup").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const full_name = document.getElementById("signup-name").value.trim();
+  const role = document.getElementById("signup-role").value;
+  const email = document.getElementById("signup-email").value.trim();
+  const password = document.getElementById("signup-pass").value;
+  const errorEl = document.getElementById("signup-error");
+  errorEl.textContent = "";
+  const { data, error } = await window.sb.auth.signUp({
+    email, password,
+    options: { data: { full_name } }
+  });
+  if (error) {
+    errorEl.textContent = error.message.includes("already registered")
+      ? "Ese correo ya tiene una cuenta."
+      : "No se pudo crear la cuenta: " + error.message;
+    return;
+  }
+  // Ajusta el rol elegido (el trigger crea el perfil con rol 'profesor' por defecto)
+  if (data.user) {
+    await window.sb.from("profiles").update({ role, full_name }).eq("id", data.user.id);
+  }
+  window.location.href = "dashboard.html";
+});
+
+async function olvideContrasena() {
+  const infoEl = document.getElementById("login-info");
+  const errorEl = document.getElementById("login-error");
+  infoEl.textContent = "";
+  errorEl.textContent = "";
+
+  let email = (document.getElementById("login-email").value || "").trim();
+  if (!email) {
+    email = prompt("Escribe el correo con el que creaste tu cuenta:") || "";
+    email = email.trim();
+  }
+  if (!email) return;
+  if (!email.includes("@")) {
+    errorEl.textContent = "Escribe tu correo electrónico completo (no el usuario) para poder enviarte el enlace de recuperación.";
+    return;
+  }
+
+  const { error } = await window.sb.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin + "/restablecer-password.html"
+  });
+  if (error) {
+    errorEl.textContent = "No se pudo enviar el correo: " + error.message;
+    return;
+  }
+  infoEl.textContent = "Si ese correo tiene una cuenta, te enviamos un enlace para restablecer la contraseña. Revisa tu bandeja de entrada (y spam).";
+}
+
+// Si ya hay sesión activa, saltar directo al panel
+(async () => {
+  const { data: { session } } = await window.sb.auth.getSession();
+  if (session) window.location.href = "dashboard.html";
+})();
+</script>
+</body>
+</html>
