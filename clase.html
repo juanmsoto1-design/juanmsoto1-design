@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Salón de Clases · Registro ADSE</title>
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    .class-hero {
+      background: linear-gradient(135deg, var(--azul) 0%, var(--cyan-dark) 100%);
+      color: white;
+      border-radius: 16px;
+      padding: 24px 28px;
+      margin-bottom: 24px;
+      box-shadow: 0 4px 16px rgba(24, 128, 56, 0.2);
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .class-hero h1 {
+      margin: 0 0 6px;
+      font-size: 26px;
+      font-weight: 800;
+      color: white;
+      letter-spacing: -0.3px;
+    }
+    .class-hero p {
+      margin: 0;
+      font-size: 14px;
+      opacity: 0.9;
+    }
+    .class-hero .code-chip {
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(4px);
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .stat-box {
+      background: white;
+      border: 1px solid var(--borde);
+      border-radius: 12px;
+      padding: 14px 16px;
+      box-shadow: 0 1px 3px rgba(60, 64, 67, 0.06);
+    }
+    .stat-box .num {
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--azul);
+    }
+    .stat-box .label {
+      font-size: 12px;
+      color: var(--gris);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    .feed-container {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .asig-card {
+      background: white;
+      border: 1px solid var(--borde);
+      border-radius: 12px;
+      padding: 18px;
+      box-shadow: 0 1px 3px rgba(60, 64, 67, 0.08);
+      cursor: pointer;
+      transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .asig-card:hover {
+      border-color: var(--cyan);
+      box-shadow: 0 6px 18px rgba(30, 142, 62, 0.16);
+      transform: translateY(-2px);
+    }
+    .asig-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+    }
+    .asig-title {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--azul);
+      margin: 0 0 4px;
+    }
+    .asig-desc {
+      font-size: 13px;
+      color: #3c4043;
+      margin: 0;
+      white-space: pre-wrap;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .asig-meta {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 12px;
+      color: var(--gris);
+      flex-wrap: wrap;
+    }
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .status-pendiente {
+      background: #f1f3f4;
+      color: var(--gris);
+      border: 1px solid var(--borde);
+    }
+    .status-vencida {
+      background: #fce8e6;
+      color: var(--rojo);
+    }
+    .status-entregado {
+      background: #eaf4fc;
+      color: #1a73e8;
+    }
+    .status-calificado {
+      background: var(--azul-claro);
+      color: var(--azul);
+    }
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <div style="display:flex; align-items:center; gap:10px;">
+    <span style="font-size:20px;">🏫</span>
+    <h1 id="topbar-title">Salón de Clases</h1>
+  </div>
+  <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+    <div id="estudiante-badge" class="hidden" style="display:flex; align-items:center; gap:8px; font-size:13px; color:var(--gris); background:var(--azul-claro); padding:5px 12px; border-radius:999px;">
+      <span style="font-weight:700; color:var(--azul);" id="badge-nombre-estudiante"></span>
+      <button type="button" class="btn" style="padding:2px 8px; font-size:11px; margin:0;" onclick="cambiarEstudiante()">Cambiar</button>
+    </div>
+    <button type="button" class="btn btn-secondary" onclick="abrirModalPosiciones()">🏆 Tabla de posiciones</button>
+    <button type="button" class="btn btn-secondary" onclick="cargarFeed()">↻ Actualizar</button>
+  </div>
+</div>
+
+<div class="container" style="max-width:860px;">
+
+  <!-- Paso 1: Pide código de materia si no vino en URL -->
+  <div id="paso-pedir-codigo" class="hidden">
+    <div class="card" style="max-width:440px; margin:40px auto; text-align:center;">
+      <div style="font-size:42px; margin-bottom:8px;">🏫</div>
+      <h2 style="color:var(--azul); margin-top:0;">Entrar al Salón de Clases</h2>
+      <p style="color:var(--gris); font-size:14px;">Escribe el código de registro de la materia que te proporcionó tu profesor:</p>
+      <input type="text" id="in-codigo-materia" placeholder="Ej: GR3-2026" style="text-align:center; font-weight:700; font-size:18px; letter-spacing:2px; text-transform:uppercase;" />
+      <div class="error-msg" id="error-codigo-materia"></div>
+      <button class="btn btn-primary" style="width:100%;" onclick="ingresarCodigoManual()">Continuar</button>
+    </div>
+  </div>
+
+  <!-- Paso 2: Pide seleccionar el estudiante -->
+  <div id="paso-elegir-estudiante" class="hidden">
+    <div class="card" style="max-width:460px; margin:40px auto; text-align:center;">
+      <div style="font-size:42px; margin-bottom:8px;">👤</div>
+      <h2 style="color:var(--azul); margin-top:0;" id="sel-materia-titulo">Bienvenido a la clase</h2>
+      <p style="color:var(--gris); font-size:14px;">Selecciona tu nombre en la lista de la clase para ver todas tus asignaciones y calificaciones:</p>
+      
+      <div style="text-align:left; margin-bottom:14px;">
+        <label for="select-estudiante">Tu nombre completo:</label>
+        <select id="select-estudiante" style="margin-bottom:6px;"></select>
+        <div style="font-size:12px; color:var(--gris); margin-top:6px;">
+          ¿No estás en la lista? <a href="#" id="link-auto-registro" style="color:var(--cyan); font-weight:700;">Regístrate aquí en la materia</a>
+        </div>
+      </div>
+
+      <div class="error-msg" id="error-estudiante"></div>
+      <button class="btn btn-primary" style="width:100%;" onclick="confirmarEstudiante()">Entrar a mis asignaciones →</button>
+    </div>
+  </div>
+
+  <!-- Paso 3: Feed del Salón de Clases -->
+  <div id="paso-feed" class="hidden">
+    <!-- Hero de la clase -->
+    <div class="class-hero">
+      <div>
+        <h1 id="hero-materia-nombre">Materia</h1>
+        <p id="hero-profesor">Profesor</p>
+      </div>
+      <div class="code-chip">
+        <span>CÓDIGO:</span>
+        <span id="hero-codigo"></span>
+      </div>
+    </div>
+
+    <!-- Contadores rápidos -->
+    <div class="stats-row">
+      <div class="stat-box">
+        <div class="num" id="stat-total">0</div>
+        <div class="label">Total asignaciones</div>
+      </div>
+      <div class="stat-box">
+        <div class="num" id="stat-pendientes" style="color:#b3261e;">0</div>
+        <div class="label">Pendientes</div>
+      </div>
+      <div class="stat-box">
+        <div class="num" id="stat-entregadas" style="color:var(--cyan-dark);">0</div>
+        <div class="label">Entregadas / En revisión</div>
+      </div>
+      <div class="stat-box">
+        <div class="num" id="stat-calificadas" style="color:var(--azul);">0</div>
+        <div class="label">Calificadas</div>
+      </div>
+    </div>
+
+    <!-- Lista de asignaciones (Feed de Classroom) -->
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+      <h2 style="color:var(--azul); margin:0; font-size:18px;">Asignaciones de la materia</h2>
+      <span style="font-size:13px; color:var(--gris);">Haz clic en cualquier asignación para entregarla o ver resultados</span>
+    </div>
+
+    <div id="feed-lista" class="feed-container"></div>
+  </div>
+
+</div>
+
+<!-- Modal: Tabla de Posiciones Global de la Clase -->
+<div id="modal-posiciones" class="modal-backdrop hidden">
+  <div class="modal" style="max-width:500px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+      <h3 style="margin:0; color:var(--azul);">🏆 Tabla de Posiciones</h3>
+      <button type="button" class="btn btn-secondary" style="padding:4px 10px; font-size:12px;" onclick="cerrarModalPosiciones()">✕</button>
+    </div>
+    <p style="color:var(--gris); font-size:13px; margin:0 0 14px;" id="pos-subtitulo">Puntos acumulados en todas las asignaciones de la materia:</p>
+    <div id="pos-lista" style="max-height:60vh; overflow-y:auto; display:flex; flex-direction:column; gap:8px;"></div>
+    <button type="button" class="btn btn-secondary" style="width:100%; margin-top:16px;" onclick="cerrarModalPosiciones()">Cerrar</button>
+  </div>
+</div>
+
+<script src="js/config.js"></script>
+<script>
+window.sb = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
+
+let codigoMateriaActual = "";
+let materiaActual = null;
+let estudiantesActuales = [];
+let estudianteIdActual = null;
+let asignacionesActuales = [];
+
+const TIPOS_INFO = {
+  cuestionario: { icono: "🧠", texto: "Cuestionario" },
+  vocabulario: { icono: "🔤", texto: "Vocabulario / Verbos" },
+  texto_libre: { icono: "📝", texto: "Texto libre" },
+  ensayo: { icono: "📄", texto: "Ensayo" },
+  reporte_lectura: { icono: "📖", texto: "Reporte de lectura" },
+  exegesis: { icono: "📜", texto: "Exégesis" },
+  presentacion: { icono: "🎤", texto: "Presentación PPT" }
+};
+
+function escapeHtml(str) {
+  if (!str) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function formatoFecha(f) {
+  if (!f) return "Sin fecha límite";
+  const d = new Date(f + "T00:00:00");
+  return d.toLocaleDateString("es-DO", { day: "2-digit", month: "short", year: "numeric" });
+}
+
+function mostrarPaso(paso) {
+  document.getElementById("paso-pedir-codigo").classList.toggle("hidden", paso !== "pedir-codigo");
+  document.getElementById("paso-elegir-estudiante").classList.toggle("hidden", paso !== "elegir-estudiante");
+  document.getElementById("paso-feed").classList.toggle("hidden", paso !== "feed");
+}
+
+async function inicializar() {
+  const params = new URLSearchParams(window.location.search);
+  const codigo = params.get("codigo");
+
+  if (!codigo) {
+    mostrarPaso("pedir-codigo");
+    return;
+  }
+
+  codigoMateriaActual = codigo.trim().toUpperCase();
+  await cargarMateriaYEstudiantes();
+}
+
+function ingresarCodigoManual() {
+  const val = document.getElementById("in-codigo-materia").value.trim().toUpperCase();
+  if (!val) {
+    document.getElementById("error-codigo-materia").textContent = "Escribe el código de la materia.";
+    return;
+  }
+  window.location.href = `clase.html?codigo=${encodeURIComponent(val)}`;
+}
+
+async function cargarMateriaYEstudiantes() {
+  // Cargar datos de la materia
+  const { data: mats, error: errMat } = await window.sb.rpc("materia_por_codigo_registro", {
+    p_codigo_registro: codigoMateriaActual
+  });
+
+  if (errMat || !mats || mats.length === 0) {
+    // Si no hay datos, mostrar paso pedir código con error
+    mostrarPaso("pedir-codigo");
+    document.getElementById("in-codigo-materia").value = codigoMateriaActual;
+    document.getElementById("error-codigo-materia").textContent = "Código de materia no encontrado. Verifica con tu profesor.";
+    return;
+  }
+
+  materiaActual = mats[0];
+  document.getElementById("topbar-title").textContent = materiaActual.nombre || "Salón de Clases";
+  document.getElementById("hero-materia-nombre").textContent = materiaActual.nombre || "Salón de Clases";
+  document.getElementById("hero-profesor").textContent = (materiaActual.profesor ? `Prof. ${materiaActual.profesor}` : "") +
+    (materiaActual.periodo ? ` · ${materiaActual.periodo} ${materiaActual.año || ""}` : "");
+  document.getElementById("hero-codigo").textContent = materiaActual.codigo_registro || codigoMateriaActual;
+  document.getElementById("link-auto-registro").href = `registro-estudiante.html?codigo=${encodeURIComponent(materiaActual.codigo_registro || codigoMateriaActual)}`;
+
+  // Cargar lista de estudiantes
+  const { data: ests, error: errEst } = await window.sb.rpc("estudiantes_por_codigo_materia", {
+    p_codigo_registro: codigoMateriaActual
+  });
+
+  estudiantesActuales = ests || [];
+
+  // Verificar si ya tiene estudiante guardado en localStorage o por query param
+  const params = new URLSearchParams(window.location.search);
+  const estParam = params.get("estudiante");
+  const estGuardado = estParam || localStorage.getItem(`clase_estudiante_${codigoMateriaActual}`);
+
+  if (estGuardado && estudiantesActuales.some(e => e.id === estGuardado)) {
+    estudianteIdActual = estGuardado;
+    mostrarPaso("feed");
+    actualizarBadgeEstudiante();
+    await cargarFeed();
+  } else {
+    // Mostrar selector de estudiante
+    poblarSelectorEstudiantes();
+    mostrarPaso("elegir-estudiante");
+  }
+}
+
+function poblarSelectorEstudiantes() {
+  const sel = document.getElementById("select-estudiante");
+  document.getElementById("sel-materia-titulo").textContent = materiaActual ? materiaActual.nombre : "Salón de Clases";
+  
+  if (estudiantesActuales.length === 0) {
+    sel.innerHTML = `<option value="">-- No hay estudiantes inscritos aún --</option>`;
+    return;
+  }
+
+  sel.innerHTML = `<option value="">-- Selecciona tu nombre --</option>` +
+    estudiantesActuales.map(e => `
+      <option value="${e.id}">${e.no_orden ? e.no_orden + ". " : ""}${escapeHtml(e.nombre)}</option>
+    `).join("");
+}
+
+function confirmarEstudiante() {
+  const sel = document.getElementById("select-estudiante");
+  const errEl = document.getElementById("error-estudiante");
+  errEl.textContent = "";
+
+  if (!sel.value) {
+    errEl.textContent = "Por favor selecciona tu nombre en la lista.";
+    return;
+  }
+
+  estudianteIdActual = sel.value;
+  localStorage.setItem(`clase_estudiante_${codigoMateriaActual}`, estudianteIdActual);
+  mostrarPaso("feed");
+  actualizarBadgeEstudiante();
+  cargarFeed();
+}
+
+function cambiarEstudiante() {
+  localStorage.removeItem(`clase_estudiante_${codigoMateriaActual}`);
+  estudianteIdActual = null;
+  document.getElementById("estudiante-badge").classList.add("hidden");
+  poblarSelectorEstudiantes();
+  mostrarPaso("elegir-estudiante");
+}
+
+function actualizarBadgeEstudiante() {
+  const badge = document.getElementById("estudiante-badge");
+  const nombreEl = document.getElementById("badge-nombre-estudiante");
+  const est = estudiantesActuales.find(e => e.id === estudianteIdActual);
+
+  if (est) {
+    nombreEl.textContent = "👤 " + est.nombre;
+    badge.classList.remove("hidden");
+  } else {
+    badge.classList.add("hidden");
+  }
+}
+
+async function cargarFeed() {
+  const cont = document.getElementById("feed-lista");
+  cont.innerHTML = `<p style="color:var(--gris); font-size:14px; text-align:center; padding:20px 0;">Cargando tus asignaciones...</p>`;
+
+  const { data: asignaciones, error } = await window.sb.rpc("mis_asignaciones_por_materia", {
+    p_codigo_registro: codigoMateriaActual,
+    p_estudiante_id: estudianteIdActual
+  });
+
+  if (error) {
+    cont.innerHTML = `<div class="card" style="color:var(--rojo);">Error cargando asignaciones: ${escapeHtml(error.message)}</div>`;
+    return;
+  }
+
+  asignacionesActuales = asignaciones || [];
+
+  // Calcular contadores
+  const total = asignacionesActuales.length;
+  const pendientes = asignacionesActuales.filter(a => a.estado === "pendiente").length;
+  const entregadas = asignacionesActuales.filter(a => a.estado === "entregado").length;
+  const calificadas = asignacionesActuales.filter(a => a.estado === "calificado").length;
+
+  document.getElementById("stat-total").textContent = total;
+  document.getElementById("stat-pendientes").textContent = pendientes;
+  document.getElementById("stat-entregadas").textContent = entregadas;
+  document.getElementById("stat-calificadas").textContent = calificadas;
+
+  if (total === 0) {
+    cont.innerHTML = `
+      <div class="card empty-state">
+        <div style="font-size:38px; margin-bottom:8px;">📚</div>
+        <h3 style="color:var(--azul); margin:0 0 6px;">No hay asignaciones aún</h3>
+        <p style="color:var(--gris); margin:0;">Tu profesor no ha publicado tareas para esta materia todavía.</p>
+      </div>
+    `;
+    return;
+  }
+
+  const hoy = new Date().toISOString().slice(0, 10);
+
+  cont.innerHTML = asignacionesActuales.map(a => {
+    const infoTipo = TIPOS_INFO[a.tipo] || { icono: "📌", texto: a.tipo };
+    const vencida = a.fecha_entrega && a.fecha_entrega < hoy && a.estado === "pendiente";
+
+    let badgeEstadoHtml = "";
+    let textoBoton = "Abrir tarea →";
+
+    if (a.estado === "calificado") {
+      badgeEstadoHtml = `
+        <span class="status-badge status-calificado">
+          ✓ Calificado: <strong>${a.puntuacion} / ${a.puntos} pts</strong>
+        </span>
+      `;
+      textoBoton = "Ver resultados →";
+    } else if (a.estado === "entregado") {
+      badgeEstadoHtml = `
+        <span class="status-badge status-entregado">
+          ⏳ Entregado (intento ${a.intentos}/2) · En revisión
+        </span>
+      `;
+      textoBoton = a.intentos < 2 ? `Ver entrega / Reintentar (${a.intentos + 1}/2) →` : "Ver mi entrega →";
+    } else {
+      if (vencida) {
+        badgeEstadoHtml = `<span class="status-badge status-vencida">⚠️ Vencida · Pendiente</span>`;
+      } else {
+        badgeEstadoHtml = `<span class="status-badge status-pendiente">⚪ Pendiente</span>`;
+      }
+      textoBoton = "Entregar ahora →";
+    }
+
+    const urlEntrega = `entrar.html?codigo=${encodeURIComponent(a.codigo_acceso)}&estudiante=${encodeURIComponent(estudianteIdActual)}&materia=${encodeURIComponent(codigoMateriaActual)}`;
+
+    return `
+      <div class="asig-card" onclick="window.location.href='${urlEntrega}'">
+        <div class="asig-header">
+          <div>
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+              <span class="badge" style="background:var(--azul-claro); color:var(--cyan-dark); font-size:11px;">
+                ${infoTipo.icono} ${infoTipo.texto}
+              </span>
+              <span style="font-size:12px; color:var(--gris); font-weight:700;">Vale ${a.puntos} pts</span>
+            </div>
+            <h3 class="asig-title">${escapeHtml(a.titulo)}</h3>
+          </div>
+          <div>${badgeEstadoHtml}</div>
+        </div>
+
+        ${a.descripcion ? `<p class="asig-desc">${escapeHtml(a.descripcion)}</p>` : ""}
+
+        <div class="asig-meta" style="border-top:1px solid #f1f3f4; padding-top:10px; margin-top:4px;">
+          <span>📅 Fecha límite: <strong>${formatoFecha(a.fecha_entrega)}${a.hora_entrega ? " " + a.hora_entrega.slice(0, 5) : ""}</strong></span>
+          <span style="margin-left:auto; color:var(--cyan); font-weight:700; font-size:13px;">${textoBoton}</span>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+async function abrirModalPosiciones() {
+  const modal = document.getElementById("modal-posiciones");
+  const cont = document.getElementById("pos-lista");
+  modal.classList.remove("hidden");
+  cont.innerHTML = `<p style="color:var(--gris); font-size:13px; text-align:center;">Cargando tabla de posiciones...</p>`;
+
+  const { data, error } = await window.sb.rpc("tabla_posiciones_por_codigo_materia", {
+    p_codigo_registro: codigoMateriaActual
+  });
+
+  if (error) {
+    cont.innerHTML = `<p class="error-msg">Error: ${escapeHtml(error.message)}</p>`;
+    return;
+  }
+
+  if (!data || data.length === 0) {
+    cont.innerHTML = `<p style="color:var(--gris); font-size:13px; text-align:center;">Aún no hay puntuaciones registradas en esta clase.</p>`;
+    return;
+  }
+
+  const medallas = ["🥇", "🥈", "🥉"];
+
+  cont.innerHTML = data.map((row, i) => {
+    const esYo = row.estudiante_id === estudianteIdActual;
+    return `
+      <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 14px; border-radius:8px;
+        background:${esYo ? "var(--azul-claro)" : "#f8f9fa"}; border:${esYo ? "2px solid var(--cyan)" : "1px solid var(--borde)"};">
+        <span style="font-weight:${esYo ? "700" : "600"}; color:var(--azul);">
+          ${i < 3 ? medallas[i] : (i + 1) + "."} ${escapeHtml(row.nombre)} ${esYo ? " (Tú)" : ""}
+        </span>
+        <span style="font-weight:800; color:var(--cyan-dark); font-size:14px;">
+          ${row.puntos_totales} pts
+        </span>
+      </div>
+    `;
+  }).join("");
+}
+
+function cerrarModalPosiciones() {
+  document.getElementById("modal-posiciones").classList.add("hidden");
+}
+
+document.addEventListener("DOMContentLoaded", inicializar);
+</script>
+</body>
+</html>

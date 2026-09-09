@@ -64,6 +64,7 @@
         <button class="btn btn-secondary" style="width:100%; margin-top:8px;" onclick="verPosiciones()">🏆 Ver tabla de posiciones</button>
       </div>
 
+      <button class="btn btn-secondary hidden" id="btn-volver-clase" style="width:100%; margin-top:8px;" onclick="volverClase()">← Volver al salón de clases</button>
       <button class="btn btn-secondary" style="width:100%; margin-top:8px;" onclick="reiniciar()">← Usar otro código</button>
     </div>
 
@@ -72,12 +73,13 @@
       <h3 style="color:#1e7a34;">¡Entrega registrada!</h3>
       <p style="color:#6b7280; font-size:14px;">Tu profesor la revisará y asignará tu puntuación.</p>
       <button class="btn btn-primary" style="width:100%;" onclick="verPosiciones()">🏆 Ver tabla de posiciones</button>
+      <button class="btn btn-secondary hidden" id="btn-volver-clase-exito" style="width:100%; margin-top:8px;" onclick="volverClase()">← Volver al salón de clases</button>
       <button class="btn btn-secondary" style="width:100%; margin-top:8px;" onclick="reiniciar()">Entregar otra asignación</button>
     </div>
 
     <div id="paso-posiciones" class="hidden">
-      <h3 style="color:#16305c; margin-bottom:4px;">🏆 Tabla de posiciones</h3>
-      <p style="color:#6b7280; font-size:13px; margin-top:0;" id="pos-subtitulo"></p>
+      <h3 style="color:var(--azul); margin-bottom:4px;">🏆 Tabla de posiciones</h3>
+      <p style="color:var(--gris); font-size:13px; margin-top:0;" id="pos-subtitulo"></p>
       <div id="lista-posiciones"></div>
       <button class="btn btn-secondary" style="width:100%; margin-top:14px;" onclick="verPosiciones()">↻ Actualizar</button>
       <button class="btn btn-secondary" style="width:100%; margin-top:8px;" onclick="reiniciar()">← Usar otro código</button>
@@ -172,7 +174,30 @@ async function buscarAsignacion() {
   document.getElementById("error-archivo").textContent = "";
   document.getElementById("error-vocabulario").textContent = "";
 
+  const urlParams = new URLSearchParams(window.location.search);
+  const matParam = urlParams.get("materia");
+  if (matParam) {
+    const btnV = document.getElementById("btn-volver-clase");
+    if (btnV) btnV.classList.remove("hidden");
+    const btnVExito = document.getElementById("btn-volver-clase-exito");
+    if (btnVExito) btnVExito.classList.remove("hidden");
+  }
+
   mostrarPaso("detalle");
+
+  const estParam = urlParams.get("estudiante");
+  if (estParam && ests.some(e => e.id === estParam)) {
+    select.value = estParam;
+    await onCambioEstudiante();
+  }
+}
+
+function volverClase() {
+  const params = new URLSearchParams(window.location.search);
+  const mat = params.get("materia");
+  if (mat) {
+    window.location.href = `clase.html?codigo=${encodeURIComponent(mat)}`;
+  }
 }
 
 function renderPalabrasVocabulario(respuestasPrevias, soloLectura) {

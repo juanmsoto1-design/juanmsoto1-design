@@ -241,15 +241,33 @@
   </div>
 </div>
 
-<!-- Modal link de auto-registro de estudiantes -->
+<!-- Modal link de auto-registro y salón de clases -->
 <div id="modal-registro" class="modal-backdrop hidden">
-  <div class="modal" style="max-width:420px; text-align:center;">
-    <h3>Link de auto-registro</h3>
-    <p style="color:#6b7280; font-size:13px; margin-top:-8px;">Comparte este link o código QR con tus estudiantes. Al llenar el formulario quedan agregados automáticamente a esta materia.</p>
+  <div class="modal" style="max-width:440px; text-align:center;">
+    <h3 style="color:var(--azul);">Salón de clases y auto-registro</h3>
+    <p style="color:var(--gris); font-size:13px; margin-top:-8px;">Comparte este código o link con tus estudiantes para que vean todas las asignaciones o se auto-registren.</p>
     <div id="qr-registro" style="display:flex; justify-content:center; margin:14px 0;"></div>
-    <div style="font-size:11px; color:#6b7280;">CÓDIGO DE MATERIA</div>
-    <div id="registro-codigo" style="font-size:22px; font-weight:700; letter-spacing:3px; color:#16305c; margin-bottom:10px;"></div>
-    <button type="button" class="btn btn-secondary" style="width:100%; margin-bottom:8px;" onclick="copiarLinkRegistro()">Copiar link de registro</button>
+    <div style="font-size:11px; color:var(--gris);">CÓDIGO DE MATERIA</div>
+    <div id="registro-codigo" style="font-size:22px; font-weight:700; letter-spacing:3px; color:var(--azul); margin-bottom:12px;"></div>
+
+    <div style="background:var(--azul-claro); border-radius:8px; padding:12px; margin-bottom:12px; text-align:left;">
+      <div style="font-size:13px; font-weight:700; color:var(--azul); margin-bottom:4px;">🏫 Enlace del salón de clases</div>
+      <div style="font-size:12px; color:var(--gris); margin-bottom:8px;">Tus estudiantes verán todas las tareas de esta materia en una sola pantalla.</div>
+      <div style="display:flex; gap:6px; flex-wrap:wrap;">
+        <button type="button" class="btn btn-secondary" style="padding:6px 12px; font-size:12px;" onclick="copiarLinkClase()">Copiar enlace</button>
+        <button type="button" class="btn btn-primary" style="padding:6px 12px; font-size:12px;" onclick="compartirWhatsappClase()">Compartir por WhatsApp</button>
+      </div>
+    </div>
+
+    <div style="background:#f8f9fa; border:1px solid var(--borde); border-radius:8px; padding:12px; margin-bottom:12px; text-align:left;">
+      <div style="font-size:13px; font-weight:700; color:#3c4043; margin-bottom:4px;">📝 Enlace de auto-registro</div>
+      <div style="font-size:12px; color:var(--gris); margin-bottom:8px;">Para que estudiantes nuevos se agreguen automáticamente a la materia.</div>
+      <div style="display:flex; gap:6px; flex-wrap:wrap;">
+        <button type="button" class="btn btn-secondary" style="padding:6px 12px; font-size:12px;" onclick="copiarLinkRegistro()">Copiar enlace</button>
+        <button type="button" class="btn btn-secondary" style="padding:6px 12px; font-size:12px;" onclick="compartirWhatsappRegistro()">Compartir por WhatsApp</button>
+      </div>
+    </div>
+
     <button type="button" class="btn btn-secondary" style="width:100%;" onclick="cerrarModal('modal-registro')">Cerrar</button>
   </div>
 </div>

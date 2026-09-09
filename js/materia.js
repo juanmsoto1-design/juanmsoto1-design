@@ -355,20 +355,43 @@ async function eliminarTodosEstudiantes() {
   alert("Se eliminó el listado completo de estudiantes.");
 }
 
+function enlaceClase(codigo) {
+  return `${window.location.origin}/clase.html?codigo=${codigo}`;
+}
+
+function enlaceRegistro(codigo) {
+  return `${window.location.origin}/registro-estudiante.html?codigo=${codigo}`;
+}
+
 function abrirModalRegistro() {
-  const link = `${window.location.origin}/registro-estudiante.html?codigo=${materia.codigo_registro}`;
+  const linkClase = enlaceClase(materia.codigo_registro);
   document.getElementById("registro-codigo").textContent = materia.codigo_registro || "—";
   const cont = document.getElementById("qr-registro");
   cont.innerHTML = "";
   if (materia.codigo_registro && window.QRCode) {
-    new QRCode(cont, { text: link, width: 140, height: 140 });
+    new QRCode(cont, { text: linkClase, width: 140, height: 140 });
   }
   document.getElementById("modal-registro").classList.remove("hidden");
 }
 
+function copiarLinkClase() {
+  const link = enlaceClase(materia.codigo_registro);
+  copiarTexto(link);
+}
+
+function compartirWhatsappClase() {
+  const link = enlaceClase(materia.codigo_registro);
+  compartirWhatsapp(link, `Salón de clases de ${materia.nombre}`);
+}
+
 function copiarLinkRegistro() {
-  const link = `${window.location.origin}/registro-estudiante.html?codigo=${materia.codigo_registro}`;
-  navigator.clipboard.writeText(link).then(() => alert("Link copiado: " + link));
+  const link = enlaceRegistro(materia.codigo_registro);
+  copiarTexto(link);
+}
+
+function compartirWhatsappRegistro() {
+  const link = enlaceRegistro(materia.codigo_registro);
+  compartirWhatsapp(link, `Auto-registro para la materia ${materia.nombre}`);
 }
 
 async function eliminarMateria() {
@@ -663,7 +686,7 @@ function renderListaAsignaciones() {
     <div style="border:1px solid #dfe3e8; border-radius:8px; padding:10px; margin-bottom:8px;">
       <div style="display:flex; justify-content:space-between; align-items:start;">
         <strong>${escapeHtml(a.titulo)} <small style="color:#6b7280;">(${a.puntos} pts)</small>
-          <span class="badge" style="background:#eaf4fc; color:#0092c7; margin-left:6px;">
+          <span class="badge" style="background:var(--azul-claro); color:var(--cyan-dark); margin-left:6px;">
             ${et.icono} ${et.texto}
           </span>
         </strong>
@@ -673,13 +696,16 @@ function renderListaAsignaciones() {
       <div style="font-size:12px; color:${vencida ? "#b3261e" : "#6b7280"};">
         Asignada: ${formatoFecha(a.fecha_asignada)} · Cierre: ${formatoFecha(a.fecha_entrega)}${a.hora_entrega ? " " + a.hora_entrega.slice(0, 5) : ""} ${vencida ? " (vencida)" : ""}
       </div>
-      <div style="display:flex; align-items:center; gap:12px; margin:8px 0; background:#eaf4fc; padding:8px; border-radius:6px; flex-wrap:wrap;">
+      <div style="display:flex; align-items:center; gap:12px; margin:8px 0; background:var(--azul-claro); padding:10px; border-radius:8px; flex-wrap:wrap;">
         <div id="qr-asig-${a.id}"></div>
         <div>
-          <div style="font-size:11px; color:#6b7280;">CÓDIGO PARA ENTRAR</div>
-          <div style="font-size:22px; font-weight:700; letter-spacing:3px; color:#16305c;">${a.codigo_acceso}</div>
+          <div style="font-size:11px; color:var(--gris);">CÓDIGO PARA ENTRAR</div>
+          <div style="font-size:22px; font-weight:700; letter-spacing:3px; color:var(--azul);">${a.codigo_acceso}</div>
         </div>
-        <button class="btn btn-secondary" style="padding:6px 10px; font-size:12px;" onclick="copiarTexto('${link}')">Copiar link</button>
+        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+          <button class="btn btn-secondary" style="padding:6px 10px; font-size:12px;" onclick="copiarTexto('${link}')">Copiar enlace</button>
+          <button class="btn btn-primary" style="padding:6px 10px; font-size:12px;" onclick="compartirWhatsapp('${link}', 'Asignación: ${escapeHtml(a.titulo)}')">Compartir por WhatsApp</button>
+        </div>
       </div>
       <button class="btn btn-secondary" style="padding:4px 8px; font-size:12px;" onclick="toggleEntregas('${a.id}')">Ver entregas</button>
       <div id="entregas-${a.id}" class="hidden" style="margin-top:8px;"></div>
@@ -696,7 +722,12 @@ function renderListaAsignaciones() {
 }
 
 function copiarTexto(texto) {
-  navigator.clipboard.writeText(texto).then(() => alert("Link copiado: " + texto));
+  navigator.clipboard.writeText(texto).then(() => alert("Enlace copiado al portapapeles: " + texto));
+}
+
+function compartirWhatsapp(url, titulo) {
+  const texto = titulo ? `${titulo}: ${url}` : url;
+  window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, "_blank");
 }
 
 async function toggleEntregas(asignacionId) {
