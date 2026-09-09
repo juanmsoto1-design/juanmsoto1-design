@@ -1,14 +1,12 @@
 :root {
-  --azul: #16305c;
-  --azul-claro: #eaf4fc;
-  --cyan: #00aeef;
-  --cyan-dark: #0092c7;
-  --verde: #1e7a34;
-  --rojo: #b3261e;
-  --gris: #64748b;
-  --borde: #d7e6f5;
-  --fondo-start: #eef6fc;
-  --fondo-end: #d9ebf9;
+  --azul: #188038;
+  --azul-claro: #E6F4EA;
+  --cyan: #1E8E3E;
+  --cyan-dark: #0B6E2F;
+  --verde: #1E8E3E;
+  --rojo: #B3261E;
+  --gris: #5F6368;
+  --borde: #DADCE0;
 }
 
 * { box-sizing: border-box; }
@@ -16,14 +14,13 @@
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-  background: linear-gradient(160deg, var(--fondo-start) 0%, var(--fondo-end) 55%, #eef6fc 100%);
-  background-attachment: fixed;
+  background: #F1F3F4;
   min-height: 100vh;
-  color: #1f2933;
+  color: #202124;
 }
 
 .topbar {
-  background: rgba(255,255,255,0.9);
+  background: rgba(255,255,255,0.95);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   color: var(--azul);
@@ -34,7 +31,7 @@ body {
   flex-wrap: wrap;
   gap: 8px;
   border-bottom: 1px solid var(--borde);
-  box-shadow: 0 2px 12px rgba(22, 48, 92, 0.06);
+  box-shadow: 0 1px 3px rgba(60, 64, 67, 0.08);
   position: sticky;
   top: 0;
   z-index: 40;
@@ -78,7 +75,7 @@ body {
   background: var(--cyan);
   color: white;
   border-color: var(--cyan);
-  box-shadow: 0 4px 14px rgba(0, 174, 239, 0.35);
+  box-shadow: 0 2px 6px rgba(30, 142, 62, 0.3);
 }
 
 .btn-primary:hover {
@@ -113,7 +110,7 @@ body {
   background: white;
   border-radius: 14px;
   padding: 20px;
-  box-shadow: 0 4px 18px rgba(22, 48, 92, 0.08);
+  box-shadow: 0 1px 3px rgba(60, 64, 67, 0.08);
   border: 1px solid var(--borde);
   margin-bottom: 20px;
 }
@@ -129,7 +126,7 @@ body {
 .login-card {
   width: 100%;
   max-width: 380px;
-  box-shadow: 0 12px 40px rgba(22, 48, 92, 0.12);
+  box-shadow: 0 8px 24px rgba(60, 64, 67, 0.12);
 }
 
 .login-card h1 {
@@ -157,7 +154,7 @@ label {
   font-size: 13px;
   font-weight: 600;
   margin-bottom: 6px;
-  color: #374151;
+  color: #3c4043;
 }
 
 input, select, textarea {
@@ -173,7 +170,7 @@ input, select, textarea {
 input:focus, select:focus, textarea:focus {
   outline: none;
   border-color: var(--cyan);
-  box-shadow: 0 0 0 3px rgba(0, 174, 239, 0.15);
+  box-shadow: 0 0 0 3px rgba(30, 142, 62, 0.18);
 }
 
 .tabs {
@@ -216,14 +213,14 @@ input:focus, select:focus, textarea:focus {
   background: white;
   border-radius: 14px;
   padding: 18px;
-  box-shadow: 0 4px 14px rgba(22, 48, 92, 0.07);
+  box-shadow: 0 1px 3px rgba(60, 64, 67, 0.08);
   cursor: pointer;
   border: 1px solid var(--borde);
   transition: box-shadow .15s, border-color .15s, transform .15s;
 }
 
 .materia-tile:hover {
-  box-shadow: 0 10px 28px rgba(0, 174, 239, 0.18);
+  box-shadow: 0 4px 14px rgba(30, 142, 62, 0.2);
   border-color: var(--cyan);
   transform: translateY(-2px);
 }
@@ -306,12 +303,12 @@ input.celda-nota:focus {
 }
 
 .badge-aprobado {
-  background: #e3f6e8;
+  background: #E6F4EA;
   color: var(--verde);
 }
 
 .badge-reprobado {
-  background: #fbe7e6;
+  background: #fce8e6;
   color: var(--rojo);
 }
 
@@ -339,7 +336,7 @@ input.celda-nota:focus {
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(16, 32, 58, 0.45);
+  background: rgba(32, 33, 36, 0.45);
   backdrop-filter: blur(2px);
   display: flex;
   align-items: center;
@@ -353,7 +350,7 @@ input.celda-nota:focus {
   padding: 20px;
   width: 100%;
   max-width: 420px;
-  box-shadow: 0 20px 60px rgba(22, 48, 92, 0.25);
+  box-shadow: 0 16px 40px rgba(60, 64, 67, 0.2);
 }
 
 .modal h3 {
