@@ -115,6 +115,7 @@
         <option value="reporte_lectura">Reporte de lectura (con archivo PDF/Word)</option>
         <option value="exegesis">Exégesis (con archivo PDF/Word)</option>
         <option value="presentacion">Presentación PPT (con archivo)</option>
+        <option value="vocabulario">Vocabulario / Verbos (traducción, para idiomas bíblicos)</option>
       </select>
 
       <label for="a-descripcion">Descripción / instrucciones (opcional)</label>
@@ -148,6 +149,13 @@
         <label>Puntos totales del cuestionario: <strong id="cuestionario-total-puntos">0</strong> (suma automática de las preguntas)</label>
         <div id="preguntas-builder-cont" style="display:flex; flex-direction:column; gap:12px; margin-bottom:12px;"></div>
         <button type="button" class="btn btn-secondary" style="margin-bottom:14px;" onclick="agregarPreguntaBuilder()">+ Agregar pregunta</button>
+      </div>
+
+      <!-- Constructor de palabras/verbos para asignaciones tipo vocabulario (idiomas bíblicos) -->
+      <div id="bloque-vocabulario" class="hidden">
+        <p style="color:#6b7280; font-size:13px; margin-top:-4px;">Agrega cada palabra o verbo en el idioma original (griego, hebreo, etc.) con su traducción de referencia. El estudiante verá solo la palabra original y escribirá su traducción; tú calificarás cada una manualmente.</p>
+        <div id="vocabulario-builder-cont" style="display:flex; flex-direction:column; gap:8px; margin-bottom:12px;"></div>
+        <button type="button" class="btn btn-secondary" style="margin-bottom:14px;" onclick="agregarPalabraVocabulario()">+ Agregar palabra</button>
       </div>
 
       <div class="error-msg" id="asignacion-error"></div>

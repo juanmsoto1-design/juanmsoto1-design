@@ -449,11 +449,44 @@ function abrirModalAsignaciones() {
   document.getElementById("asignacion-error").textContent = "";
   document.getElementById("form-asignacion").reset();
   preguntasBuilder = [];
+  vocabularioBuilder = [];
   document.getElementById("a-tipo").value = "texto_libre";
   onCambioTipoAsignacion();
   renderPreguntasBuilder();
+  renderVocabularioBuilder();
   renderListaAsignaciones();
   document.getElementById("modal-asignaciones").classList.remove("hidden");
+}
+
+// ---------- Constructor de palabras/verbos (vocabulario, idiomas bíblicos) ----------
+let vocabularioBuilder = [];
+
+function agregarPalabraVocabulario() {
+  vocabularioBuilder.push({ palabra_original: "", traduccion_referencia: "" });
+  renderVocabularioBuilder();
+}
+
+function eliminarPalabraVocabulario(idx) {
+  vocabularioBuilder.splice(idx, 1);
+  renderVocabularioBuilder();
+}
+
+function renderVocabularioBuilder() {
+  const cont = document.getElementById("vocabulario-builder-cont");
+  if (!cont) return;
+  if (vocabularioBuilder.length === 0) {
+    cont.innerHTML = `<p style="color:#6b7280; font-size:13px;">Aún no has agregado palabras. Usa "+ Agregar palabra".</p>`;
+    return;
+  }
+  cont.innerHTML = vocabularioBuilder.map((p, idx) => `
+    <div style="display:flex; gap:6px; align-items:center;">
+      <input type="text" placeholder="Palabra o verbo (idioma original)" value="${escapeHtml(p.palabra_original)}" style="margin:0; flex:1;"
+        oninput="vocabularioBuilder[${idx}].palabra_original = this.value" />
+      <input type="text" placeholder="Traducción de referencia" value="${escapeHtml(p.traduccion_referencia)}" style="margin:0; flex:1;"
+        oninput="vocabularioBuilder[${idx}].traduccion_referencia = this.value" />
+      <button type="button" class="btn btn-danger" style="padding:4px 8px; font-size:12px;" onclick="eliminarPalabraVocabulario(${idx})">✕</button>
+    </div>
+  `).join("");
 }
 
 // ---------- Constructor de cuestionarios (tipo Google Forms) ----------
@@ -464,6 +497,7 @@ const TIPOS_CON_ARCHIVO = ["ensayo", "reporte_lectura", "exegesis", "presentacio
 function onCambioTipoAsignacion() {
   const tipo = document.getElementById("a-tipo").value;
   document.getElementById("bloque-cuestionario").classList.toggle("hidden", tipo !== "cuestionario");
+  document.getElementById("bloque-vocabulario").classList.toggle("hidden", tipo !== "vocabulario");
   document.getElementById("bloque-puntos-libre").classList.toggle("hidden", tipo === "cuestionario");
   document.getElementById("a-puntos").required = tipo !== "cuestionario";
   document.getElementById("bloque-archivo-info").classList.toggle("hidden", !TIPOS_CON_ARCHIVO.includes(tipo));
@@ -476,7 +510,8 @@ function etiquetaTipoAsignacion(tipo) {
     ensayo: { icono: "📄", texto: "Ensayo" },
     reporte_lectura: { icono: "📖", texto: "Reporte de lectura" },
     exegesis: { icono: "📜", texto: "Exégesis" },
-    presentacion: { icono: "🎤", texto: "Presentación PPT" }
+    presentacion: { icono: "🎤", texto: "Presentación PPT" },
+    vocabulario: { icono: "🔤", texto: "Vocabulario/Verbos" }
   };
   return mapa[tipo] || { icono: "📌", texto: tipo };
 }
@@ -665,6 +700,11 @@ function copiarTexto(texto) {
 }
 
 async function toggleEntregas(asignacionId) {
+  const asignacion = asignaciones.find(a => a.id === asignacionId);
+  if (asignacion && asignacion.tipo === "vocabulario") {
+    return toggleEntregasVocabulario(asignacionId, asignacion);
+  }
+
   const cont = document.getElementById(`entregas-${asignacionId}`);
   if (!cont.classList.contains("hidden")) {
     cont.classList.add("hidden");
@@ -673,7 +713,6 @@ async function toggleEntregas(asignacionId) {
   cont.classList.remove("hidden");
   cont.innerHTML = `<p style="font-size:12px; color:#6b7280;">Cargando entregas...</p>`;
 
-  const asignacion = asignaciones.find(a => a.id === asignacionId);
   const { data: entregas, error } = await window.sb
     .from("entregas")
     .select("*, estudiantes(nombre, no_orden)")
@@ -724,6 +763,119 @@ async function toggleEntregas(asignacionId) {
            </ul>`}
     </div>
   `;
+}
+
+async function toggleEntregasVocabulario(asignacionId, asignacion) {
+  const cont = document.getElementById(`entregas-${asignacionId}`);
+  if (!cont.classList.contains("hidden")) {
+    cont.classList.add("hidden");
+    return;
+  }
+  cont.classList.remove("hidden");
+  cont.innerHTML = `<p style="font-size:12px; color:#6b7280;">Cargando entregas...</p>`;
+
+  const { data: filas, error } = await window.sb
+    .from("respuestas_vocabulario")
+    .select("id, respuesta_estudiante, puntuacion, vocabulario_palabras(id, palabra_original, traduccion_referencia, orden), entregas!inner(id, estudiante_id, asignacion_id, estudiantes(nombre, no_orden))")
+    .eq("entregas.asignacion_id", asignacionId);
+
+  if (error) {
+    cont.innerHTML = `<p style="color:#b3261e; font-size:12px;">Error: ${escapeHtml(error.message)}</p>`;
+    return;
+  }
+  if (!filas || filas.length === 0) {
+    cont.innerHTML = `<p style="font-size:12px; color:#6b7280;">Nadie ha entregado todavía.</p>`;
+    return;
+  }
+
+  const porEstudiante = {};
+  filas.forEach(f => {
+    const estId = f.entregas.estudiante_id;
+    if (!porEstudiante[estId]) {
+      porEstudiante[estId] = {
+        estudianteId: estId,
+        entregaId: f.entregas.id,
+        nombre: f.entregas.estudiantes ? f.entregas.estudiantes.nombre : "—",
+        no_orden: f.entregas.estudiantes ? f.entregas.estudiantes.no_orden : 0,
+        palabras: []
+      };
+    }
+    porEstudiante[estId].palabras.push(f);
+  });
+
+  const entregaronIds = new Set(Object.keys(porEstudiante));
+  const noEntregaron = estudiantes.filter(est => !entregaronIds.has(est.id));
+
+  const listaEstudiantes = Object.values(porEstudiante).sort((a, b) => (a.no_orden || 0) - (b.no_orden || 0));
+
+  cont.innerHTML = listaEstudiantes.map(est => {
+    const filasOrdenadas = [...est.palabras].sort((a, b) => (a.vocabulario_palabras.orden || 0) - (b.vocabulario_palabras.orden || 0));
+    return `
+    <div style="border:1px solid #dfe3e8; border-radius:8px; padding:10px; margin-bottom:10px;">
+      <strong>${est.no_orden}. ${escapeHtml(est.nombre)}</strong>
+      <table style="font-size:12px; margin-top:6px;">
+        <thead><tr><th class="nombre">Palabra</th><th>Respuesta del estudiante</th><th>Traducción de referencia</th><th>Puntos</th></tr></thead>
+        <tbody>
+          ${filasOrdenadas.map(f => `
+            <tr>
+              <td class="nombre">${escapeHtml(f.vocabulario_palabras.palabra_original)}</td>
+              <td>${escapeHtml(f.respuesta_estudiante || "—")}</td>
+              <td>${escapeHtml(f.vocabulario_palabras.traduccion_referencia || "—")}</td>
+              <td><input type="number" step="0.01" min="0" style="margin:0; width:70px;" id="vp-${f.id}" value="${f.puntuacion !== null && f.puntuacion !== undefined ? f.puntuacion : ""}" /></td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+      <button class="btn btn-secondary" style="padding:4px 10px; font-size:12px; margin-top:8px;"
+        onclick="guardarVocabularioEstudiante('${est.entregaId}', '${est.estudianteId}', '${asignacion.componente_id}', ${JSON.stringify(filasOrdenadas.map(f => f.id))})">Guardar calificación</button>
+    </div>
+  `;
+  }).join("") + `
+    <div style="margin-top:10px;">
+      <strong style="font-size:12px; color:#b3261e;">No han entregado (${noEntregaron.length}):</strong>
+      ${noEntregaron.length === 0
+        ? `<p style="font-size:12px; color:#1e7a34;">Todos entregaron ✓</p>`
+        : `<ul style="font-size:12px; color:#b3261e; margin:6px 0 0 18px; padding:0;">
+             ${noEntregaron.map(e => `<li>${escapeHtml(e.nombre)}</li>`).join("")}
+           </ul>`}
+    </div>
+  `;
+}
+
+async function guardarVocabularioEstudiante(entregaId, estudianteId, componenteId, respuestaIds) {
+  let total = 0;
+  for (const id of respuestaIds) {
+    const input = document.getElementById(`vp-${id}`);
+    const valor = parseFloat(input.value);
+    const puntuacion = isNaN(valor) ? null : valor;
+    if (puntuacion !== null) total += puntuacion;
+    const { error } = await window.sb.from("respuestas_vocabulario").update({ puntuacion }).eq("id", id);
+    if (error) {
+      alert("No se pudo guardar una de las palabras: " + error.message);
+      return;
+    }
+  }
+
+  const { error: errEntrega } = await window.sb.from("entregas").update({ puntuacion: total, estado: "calificado" }).eq("id", entregaId);
+  if (errEntrega) {
+    alert("Se guardaron los puntos, pero no se pudo actualizar el total de la entrega: " + errEntrega.message);
+    return;
+  }
+
+  if (componenteId && componenteId !== "null") {
+    const { error: err2 } = await window.sb.from("calificaciones").upsert({
+      estudiante_id: estudianteId,
+      componente_id: componenteId,
+      valor: total
+    }, { onConflict: "estudiante_id,componente_id" });
+    if (err2) {
+      alert("Puntuación guardada, pero no se pudo sumar a la nota: " + err2.message);
+      return;
+    }
+  }
+
+  await cargarTodo();
+  alert("Calificación guardada y sumada a la nota del estudiante.");
 }
 
 async function calificarEntrega(entregaId, estudianteId, componenteId) {
@@ -1085,6 +1237,18 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
       puntos = preguntasBuilder.reduce((s, p) => s + (parseFloat(p.puntos) || 0), 0);
+    } else if (tipoAsignacion === "vocabulario") {
+      if (vocabularioBuilder.length === 0) {
+        errorEl.textContent = "Agrega al menos una palabra o verbo.";
+        return;
+      }
+      for (let i = 0; i < vocabularioBuilder.length; i++) {
+        if (!vocabularioBuilder[i].palabra_original.trim()) {
+          errorEl.textContent = `La palabra ${i + 1} está vacía.`;
+          return;
+        }
+      }
+      puntos = parseFloat(document.getElementById("a-puntos").value);
     } else {
       puntos = parseFloat(document.getElementById("a-puntos").value);
     }
@@ -1154,11 +1318,30 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
 
+    // 3b) si es vocabulario, guardar las palabras/verbos
+    if (tipoAsignacion === "vocabulario") {
+      const filasPalabras = vocabularioBuilder.map((p, idx) => ({
+        asignacion_id: asignacionCreada.id,
+        orden: idx,
+        palabra_original: p.palabra_original.trim(),
+        traduccion_referencia: p.traduccion_referencia.trim() || null
+      }));
+      const { error: errPalabras } = await window.sb.from("vocabulario_palabras").insert(filasPalabras);
+      if (errPalabras) {
+        errorEl.textContent = "Error guardando las palabras: " + errPalabras.message;
+        await window.sb.from("asignaciones").delete().eq("id", asignacionCreada.id);
+        await window.sb.from("componentes").delete().eq("id", comp.id);
+        return;
+      }
+    }
+
     document.getElementById("form-asignacion").reset();
     preguntasBuilder = [];
+    vocabularioBuilder = [];
     document.getElementById("a-tipo").value = "texto_libre";
     onCambioTipoAsignacion();
     renderPreguntasBuilder();
+    renderVocabularioBuilder();
     await cargarTodo();
     renderListaAsignaciones();
   });

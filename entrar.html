@@ -56,6 +56,14 @@
         <button class="btn btn-secondary" style="width:100%; margin-top:8px;" onclick="verPosiciones()">🏆 Ver tabla de posiciones</button>
       </div>
 
+      <div id="bloque-vocabulario-estudiante" class="hidden">
+        <p style="color:#6b7280; font-size:13px; margin-top:-4px;">Escribe tu traducción de cada palabra o verbo.</p>
+        <div id="palabras-vocabulario-cont" style="display:flex; flex-direction:column; gap:10px; margin-bottom:14px;"></div>
+        <div class="error-msg" id="error-vocabulario"></div>
+        <button class="btn btn-primary" style="width:100%" id="btn-enviar-vocabulario" onclick="entregarVocabulario()">Enviar traducciones</button>
+        <button class="btn btn-secondary" style="width:100%; margin-top:8px;" onclick="verPosiciones()">🏆 Ver tabla de posiciones</button>
+      </div>
+
       <button class="btn btn-secondary" style="width:100%; margin-top:8px;" onclick="reiniciar()">← Usar otro código</button>
     </div>
 
@@ -83,6 +91,7 @@ window.sb = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_AN
 let asignacionActual = null;
 let estudianteIdActual = null;
 let preguntasActuales = [];
+let palabrasActuales = [];
 
 function mostrarPaso(paso) {
   document.getElementById("paso-codigo").classList.toggle("hidden", paso !== "codigo");
@@ -132,6 +141,16 @@ async function buscarAsignacion() {
     preguntasActuales = preguntas || [];
   }
 
+  palabrasActuales = [];
+  if (asignacionActual.tipo === "vocabulario") {
+    const { data: palabras, error: errPal } = await window.sb.rpc("palabras_por_codigo", { p_codigo: codigo });
+    if (errPal) {
+      errorEl.textContent = "No se pudo cargar la lista de palabras.";
+      return;
+    }
+    palabrasActuales = palabras || [];
+  }
+
   document.getElementById("det-titulo").textContent = asignacionActual.titulo;
   document.getElementById("det-materia").textContent = asignacionActual.materia_nombre + ` · Vale ${asignacionActual.puntos} pts`;
   document.getElementById("det-descripcion").textContent = asignacionActual.descripcion || "(Sin instrucciones adicionales)";
@@ -147,11 +166,67 @@ async function buscarAsignacion() {
   document.getElementById("bloque-trabajo").classList.add("hidden");
   document.getElementById("bloque-cuestionario-estudiante").classList.add("hidden");
   document.getElementById("bloque-archivo-estudiante").classList.add("hidden");
+  document.getElementById("bloque-vocabulario-estudiante").classList.add("hidden");
   document.getElementById("in-respuesta").value = "";
   document.getElementById("in-archivo").value = "";
   document.getElementById("error-archivo").textContent = "";
+  document.getElementById("error-vocabulario").textContent = "";
 
   mostrarPaso("detalle");
+}
+
+function renderPalabrasVocabulario(respuestasPrevias, soloLectura) {
+  const cont = document.getElementById("palabras-vocabulario-cont");
+  const mapaPrevias = {};
+  (respuestasPrevias || []).forEach(r => { mapaPrevias[r.palabra_id] = r; });
+
+  cont.innerHTML = palabrasActuales.map((p, idx) => {
+    const previa = mapaPrevias[p.id];
+    const valorPrevio = previa ? (previa.respuesta_estudiante || "") : "";
+    const puntosPrevios = previa && previa.puntuacion !== null && previa.puntuacion !== undefined
+      ? `<div style="font-size:12px; font-weight:700; margin-top:4px; color:#1e7a34;">Puntos: ${previa.puntuacion}</div>`
+      : "";
+    return `
+      <div style="border:1px solid #dfe3e8; border-radius:8px; padding:10px;">
+        <div style="font-weight:700; font-size:15px; color:#16305c; margin-bottom:6px;">${idx + 1}. ${escapeHtml(p.palabra_original)}</div>
+        <input type="text" data-palabra="${p.id}" class="input-vocabulario" style="margin:0;"
+          value="${escapeHtml(valorPrevio)}" ${soloLectura ? "disabled" : ""} placeholder="Escribe tu traducción" />
+        ${puntosPrevios}
+      </div>
+    `;
+  }).join("");
+}
+
+async function entregarVocabulario() {
+  const estudianteId = document.getElementById("in-estudiante").value;
+  const errorEl = document.getElementById("error-vocabulario");
+  errorEl.textContent = "";
+  if (!estudianteId) {
+    errorEl.textContent = "Selecciona tu nombre en la lista.";
+    return;
+  }
+
+  const respuestas = [];
+  for (const p of palabrasActuales) {
+    const input = document.querySelector(`input[data-palabra="${p.id}"].input-vocabulario`);
+    if (!input || !input.value.trim()) {
+      errorEl.textContent = "Escribe la traducción de todas las palabras antes de enviar.";
+      return;
+    }
+    respuestas.push({ palabra_id: p.id, respuesta: input.value.trim() });
+  }
+
+  const codigo = document.getElementById("in-codigo").value.trim();
+  const { error } = await window.sb.rpc("entregar_vocabulario_por_codigo", {
+    p_codigo: codigo, p_estudiante_id: estudianteId, p_respuestas: respuestas
+  });
+  if (error) {
+    errorEl.textContent = error.message.includes("máximo de 2 intentos")
+      ? "Ya usaste tus 2 intentos permitidos para esta asignación."
+      : "No se pudo entregar: " + error.message;
+    return;
+  }
+  mostrarPaso("exito");
 }
 
 function renderPreguntasCuestionario(respuestasPrevias, soloLectura) {
@@ -253,14 +328,18 @@ async function onCambioEstudiante() {
   const bloqueTrabajo = document.getElementById("bloque-trabajo");
   const bloqueCuestionario = document.getElementById("bloque-cuestionario-estudiante");
   const bloqueArchivo = document.getElementById("bloque-archivo-estudiante");
+  const bloqueVocabulario = document.getElementById("bloque-vocabulario-estudiante");
   const btnEnviar = document.getElementById("btn-enviar");
   const btnEnviarCuestionario = document.getElementById("btn-enviar-cuestionario");
   const btnEnviarArchivo = document.getElementById("btn-enviar-archivo");
+  const btnEnviarVocabulario = document.getElementById("btn-enviar-vocabulario");
   document.getElementById("error-entrega").textContent = "";
   document.getElementById("error-cuestionario").textContent = "";
   document.getElementById("error-archivo").textContent = "";
+  document.getElementById("error-vocabulario").textContent = "";
 
   const esCuestionario = asignacionActual && asignacionActual.tipo === "cuestionario";
+  const esVocabulario = asignacionActual && asignacionActual.tipo === "vocabulario";
   const esArchivo = asignacionActual && asignacionActual.requiere_archivo;
 
   if (!estudianteId) {
@@ -268,6 +347,7 @@ async function onCambioEstudiante() {
     bloqueTrabajo.classList.add("hidden");
     bloqueCuestionario.classList.add("hidden");
     bloqueArchivo.classList.add("hidden");
+    bloqueVocabulario.classList.add("hidden");
     return;
   }
 
@@ -280,9 +360,53 @@ async function onCambioEstudiante() {
   const intentosUsados = previa ? (previa.intentos || 1) : 0;
   const yaCalificada = previa && previa.puntuacion !== null && previa.puntuacion !== undefined;
 
+  if (esVocabulario) {
+    bloqueTrabajo.classList.add("hidden");
+    bloqueCuestionario.classList.add("hidden");
+    bloqueArchivo.classList.add("hidden");
+    bloqueVocabulario.classList.remove("hidden");
+
+    let respuestasPrevias = [];
+    if (previa) {
+      const { data: misRespuestas } = await window.sb.rpc("mis_respuestas_vocabulario_por_codigo", {
+        p_codigo: codigo, p_estudiante_id: estudianteId
+      });
+      respuestasPrevias = misRespuestas || [];
+    }
+    renderPalabrasVocabulario(respuestasPrevias, yaCalificada && intentosUsados >= 2);
+
+    if (!previa) {
+      estadoEl.classList.add("hidden");
+      btnEnviarVocabulario.disabled = false;
+      btnEnviarVocabulario.textContent = "Enviar traducciones";
+      return;
+    }
+
+    estadoEl.classList.remove("hidden");
+    if (yaCalificada) {
+      estadoEl.style.background = "#e3f6e8";
+      estadoEl.style.color = "#1e7a34";
+      estadoEl.innerHTML = `✓ Ya entregaste (intento ${intentosUsados}/2). <strong>Tu puntuación: ${previa.puntuacion} pts</strong>`;
+    } else {
+      estadoEl.style.background = "#eaf4fc";
+      estadoEl.style.color = "#16305c";
+      estadoEl.innerHTML = `Ya entregaste (intento ${intentosUsados}/2). Tu profesor aún no ha asignado la puntuación.`;
+    }
+
+    if (intentosUsados >= 2) {
+      btnEnviarVocabulario.disabled = true;
+      btnEnviarVocabulario.textContent = "Ya usaste tus 2 intentos permitidos";
+    } else {
+      btnEnviarVocabulario.disabled = false;
+      btnEnviarVocabulario.textContent = `Reenviar (intento ${intentosUsados + 1}/2)`;
+    }
+    return;
+  }
+
   if (esArchivo) {
     bloqueTrabajo.classList.add("hidden");
     bloqueCuestionario.classList.add("hidden");
+    bloqueVocabulario.classList.add("hidden");
     bloqueArchivo.classList.remove("hidden");
     const previoEl = document.getElementById("archivo-previo");
 
@@ -321,6 +445,7 @@ async function onCambioEstudiante() {
 
   if (esCuestionario) {
     bloqueTrabajo.classList.add("hidden");
+    bloqueVocabulario.classList.add("hidden");
     bloqueCuestionario.classList.remove("hidden");
 
     let respuestasPrevias = [];
@@ -356,6 +481,7 @@ async function onCambioEstudiante() {
 
   bloqueCuestionario.classList.add("hidden");
   bloqueArchivo.classList.add("hidden");
+  bloqueVocabulario.classList.add("hidden");
   bloqueTrabajo.classList.remove("hidden");
   document.getElementById("in-respuesta").value = previa ? (previa.respuesta || "") : "";
 
@@ -476,8 +602,10 @@ function reiniciar() {
   document.getElementById("bloque-trabajo").classList.add("hidden");
   document.getElementById("bloque-cuestionario-estudiante").classList.add("hidden");
   document.getElementById("bloque-archivo-estudiante").classList.add("hidden");
+  document.getElementById("bloque-vocabulario-estudiante").classList.add("hidden");
   estudianteIdActual = null;
   preguntasActuales = [];
+  palabrasActuales = [];
   asignacionActual = null;
   mostrarPaso("codigo");
 }
