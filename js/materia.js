@@ -7,6 +7,7 @@ let estudiantes = [];
 let calificaciones = {}; // estudiante_id -> componente_id -> valor
 let escala = [];
 let asignaciones = [];
+let entregasGlobales = [];
 let realtimeChannel = null;
 let perfilActual = null;
 
@@ -15,6 +16,28 @@ function escapeHtml(str) {
   return String(str).replace(/[&<>"']/g, c => ({
     "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
   }[c]));
+}
+
+function cambiarPestanaMateria(pestana) {
+  const tabCalifs = document.getElementById("tab-btn-calificaciones");
+  const tabSalon = document.getElementById("tab-btn-salon");
+  const vistaCalifs = document.getElementById("vista-calificaciones");
+  const vistaSalon = document.getElementById("vista-salon");
+
+  if (!tabCalifs || !tabSalon || !vistaCalifs || !vistaSalon) return;
+
+  if (pestana === "salon") {
+    tabCalifs.classList.remove("active");
+    tabSalon.classList.add("active");
+    vistaCalifs.classList.add("hidden");
+    vistaSalon.classList.remove("hidden");
+    renderListaAsignaciones();
+  } else {
+    tabCalifs.classList.add("active");
+    tabSalon.classList.remove("active");
+    vistaCalifs.classList.remove("hidden");
+    vistaSalon.classList.add("hidden");
+  }
 }
 
 async function init() {
@@ -31,6 +54,10 @@ async function init() {
 
   await cargarTodo();
   suscribirRealtime();
+
+  if (params.get("tab") === "salon") {
+    cambiarPestanaMateria("salon");
+  }
 }
 
 async function cargarTodo() {
@@ -49,7 +76,7 @@ async function cargarTodo() {
     window.sb.from("estudiantes").select("*").eq("materia_id", materiaId).order("no_orden", { ascending: true }),
     window.sb.from("calificaciones").select("*, estudiantes!inner(materia_id)").eq("estudiantes.materia_id", materiaId),
     window.sb.from("escala_niveles").select("*").or(`materia_id.eq.${materiaId},materia_id.is.null`),
-    window.sb.from("asignaciones").select("*").eq("materia_id", materiaId).order("fecha_entrega", { ascending: true })
+    window.sb.from("asignaciones").select("*").eq("materia_id", materiaId).order("created_at", { ascending: false })
   ]);
 
   componentes = comps || [];
@@ -60,6 +87,16 @@ async function cargarTodo() {
     calificaciones[c.estudiante_id][c.componente_id] = c.valor;
   });
   asignaciones = asigs || [];
+
+  if (asignaciones.length > 0) {
+    const { data: entrs } = await window.sb
+      .from("entregas")
+      .select("id, asignacion_id, estudiante_id, puntuacion, estado")
+      .in("asignacion_id", asignaciones.map(a => a.id));
+    entregasGlobales = entrs || [];
+  } else {
+    entregasGlobales = [];
+  }
 
   const propia = (esc || []).filter(e => e.materia_id === materiaId);
   escala = (propia.length > 0 ? propia : (esc || []).filter(e => e.materia_id === null))
@@ -72,6 +109,7 @@ async function cargarTodo() {
   renderTabla();
   renderReporte();
   renderAlertaRiesgo();
+  renderListaAsignaciones();
 }
 
 // ---------- Gestión de secretarios por materia (solo profesor dueño o administrador) ----------
@@ -672,49 +710,95 @@ function enlaceEntrega(codigo) {
 }
 
 function renderListaAsignaciones() {
-  const cont = document.getElementById("lista-asignaciones");
-  if (asignaciones.length === 0) {
-    cont.innerHTML = `<p style="color:#6b7280; font-size:13px;">Aún no hay asignaciones creadas.</p>`;
+  const cont = document.getElementById("feed-profesor-asignaciones") || document.getElementById("lista-asignaciones");
+  if (!cont) return;
+
+  if (!asignaciones || asignaciones.length === 0) {
+    cont.innerHTML = `
+      <div class="card empty-state" style="padding:40px 20px; text-align:center;">
+        <div style="font-size:42px; margin-bottom:10px;">📚</div>
+        <h3 style="color:var(--azul); margin:0 0 6px;">No hay asignaciones aún</h3>
+        <p style="color:var(--gris); margin:0 0 16px;">Comienza creando la primera asignación de esta materia para tus estudiantes.</p>
+        <button class="btn btn-primary" onclick="abrirModalAsignaciones()">+ Crear asignación</button>
+      </div>
+    `;
     return;
   }
+
+  // Ordenar de la más reciente a la más antigua
+  const asignacionesOrdenadas = [...asignaciones].sort((a, b) => {
+    return new Date(b.created_at || b.fecha_asignada || b.id) - new Date(a.created_at || a.fecha_asignada || a.id);
+  });
+
   const hoy = new Date().toISOString().slice(0, 10);
-  cont.innerHTML = asignaciones.map(a => {
+  const totalEsts = estudiantes.length;
+
+  cont.innerHTML = asignacionesOrdenadas.map(a => {
     const vencida = a.fecha_entrega && a.fecha_entrega < hoy;
     const link = enlaceEntrega(a.codigo_acceso);
     const et = etiquetaTipoAsignacion(a.tipo);
+
+    // Calcular resumen de entregas
+    const entrsDeAsig = (entregasGlobales || []).filter(e => e.asignacion_id === a.id);
+    const entregaronCount = new Set(entrsDeAsig.map(e => e.estudiante_id)).size;
+    const calificadasCount = entrsDeAsig.filter(e => e.puntuacion !== null && e.puntuacion !== undefined).length;
+
+    let resumenPill = `${entregaronCount} de ${totalEsts} estudiantes entregaron · ${calificadasCount} calificadas`;
+    if (totalEsts > 0 && entregaronCount === totalEsts) {
+      resumenPill = `✓ Todos entregaron (${totalEsts}) · ${calificadasCount} calificadas`;
+    }
+
     return `
-    <div style="border:1px solid #dfe3e8; border-radius:8px; padding:10px; margin-bottom:8px;">
-      <div style="display:flex; justify-content:space-between; align-items:start;">
-        <strong>${escapeHtml(a.titulo)} <small style="color:#6b7280;">(${a.puntos} pts)</small>
-          <span class="badge" style="background:var(--azul-claro); color:var(--cyan-dark); margin-left:6px;">
-            ${et.icono} ${et.texto}
-          </span>
-        </strong>
-        <button class="btn btn-danger" style="padding:2px 8px; font-size:11px;" onclick="eliminarAsignacion('${a.id}')">✕</button>
+    <div class="asig-card" id="asig-card-${a.id}">
+      <div class="asig-header">
+        <div style="flex:1;">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px; flex-wrap:wrap;">
+            <span class="badge" style="background:var(--azul-claro); color:var(--cyan-dark); font-size:12px; font-weight:700;">
+              ${et.icono} ${et.texto}
+            </span>
+            <span style="font-size:12px; color:var(--gris); font-weight:700;">Vale ${a.puntos} pts</span>
+            ${vencida ? `<span class="status-badge status-vencida">⚠️ Vencida</span>` : ""}
+          </div>
+          <h3 class="asig-title" style="cursor:pointer;" onclick="toggleEntregas('${a.id}')">${escapeHtml(a.titulo)}</h3>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <button class="btn btn-secondary" style="padding:6px 12px; font-size:12px; font-weight:700;" onclick="toggleEntregas('${a.id}')">
+            👥 Entregas (${entregaronCount})
+          </button>
+          <button class="btn btn-danger" style="padding:4px 8px; font-size:11px;" title="Eliminar asignación" onclick="eliminarAsignacion('${a.id}')">✕</button>
+        </div>
       </div>
-      ${a.descripcion ? `<div style="font-size:13px; color:#374151; margin:4px 0; white-space:pre-wrap; max-height:120px; overflow-y:auto;">${escapeHtml(a.descripcion)}</div>` : ""}
-      <div style="font-size:12px; color:${vencida ? "#b3261e" : "#6b7280"};">
-        Asignada: ${formatoFecha(a.fecha_asignada)} · Cierre: ${formatoFecha(a.fecha_entrega)}${a.hora_entrega ? " " + a.hora_entrega.slice(0, 5) : ""} ${vencida ? " (vencida)" : ""}
+
+      ${a.descripcion ? `<p class="asig-desc">${escapeHtml(a.descripcion)}</p>` : ""}
+
+      <div class="asig-meta" style="border-top:1px solid #f1f3f4; padding-top:10px; margin-top:4px;">
+        <span>📅 Cierre: <strong>${formatoFecha(a.fecha_entrega)}${a.hora_entrega ? " " + a.hora_entrega.slice(0, 5) : ""}</strong></span>
+        <span style="background:var(--azul-claro); color:var(--azul); padding:3px 10px; border-radius:999px; font-weight:700; font-size:12px;">
+          📊 ${resumenPill}
+        </span>
       </div>
-      <div style="display:flex; align-items:center; gap:12px; margin:8px 0; background:var(--azul-claro); padding:10px; border-radius:8px; flex-wrap:wrap;">
+
+      <!-- Barra de acceso para estudiantes (Código, QR y Compartir) -->
+      <div style="display:flex; align-items:center; gap:12px; margin-top:8px; background:#f8f9fa; border:1px solid var(--borde); padding:10px; border-radius:8px; flex-wrap:wrap;">
         <div id="qr-asig-${a.id}"></div>
         <div>
-          <div style="font-size:11px; color:var(--gris);">CÓDIGO PARA ENTRAR</div>
-          <div style="font-size:22px; font-weight:700; letter-spacing:3px; color:var(--azul);">${a.codigo_acceso}</div>
+          <div style="font-size:11px; color:var(--gris); font-weight:700;">CÓDIGO PARA ENTRAR</div>
+          <div style="font-size:20px; font-weight:800; letter-spacing:3px; color:var(--azul);">${a.codigo_acceso}</div>
         </div>
-        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+        <div style="display:flex; gap:6px; flex-wrap:wrap; margin-left:auto;">
           <button class="btn btn-secondary" style="padding:6px 10px; font-size:12px;" onclick="copiarTexto('${link}')">Copiar enlace</button>
           <button class="btn btn-primary" style="padding:6px 10px; font-size:12px;" onclick="compartirWhatsapp('${link}', 'Asignación: ${escapeHtml(a.titulo)}')">Compartir por WhatsApp</button>
         </div>
       </div>
-      <button class="btn btn-secondary" style="padding:4px 8px; font-size:12px;" onclick="toggleEntregas('${a.id}')">Ver entregas</button>
-      <div id="entregas-${a.id}" class="hidden" style="margin-top:8px;"></div>
+
+      <!-- Contenedor desplegable para ver entregas y calificar -->
+      <div id="entregas-${a.id}" class="hidden" style="margin-top:14px; border-top:1px solid var(--borde); padding-top:14px;"></div>
     </div>
-  `;
+    `;
   }).join("");
 
   if (window.QRCode) {
-    asignaciones.forEach(a => {
+    asignacionesOrdenadas.forEach(a => {
       const el = document.getElementById(`qr-asig-${a.id}`);
       if (el) new QRCode(el, { text: enlaceEntrega(a.codigo_acceso), width: 64, height: 64 });
     });
@@ -1373,8 +1457,9 @@ document.addEventListener("DOMContentLoaded", () => {
     onCambioTipoAsignacion();
     renderPreguntasBuilder();
     renderVocabularioBuilder();
+    cerrarModal("modal-asignaciones");
     await cargarTodo();
-    renderListaAsignaciones();
+    cambiarPestanaMateria("salon");
   });
 
   document.getElementById("input-excel").addEventListener("change", async (e) => {

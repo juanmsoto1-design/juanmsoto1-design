@@ -42,21 +42,47 @@
     </div>
   </div>
 
-  <div id="alerta-riesgo" class="card hidden" style="border-left:4px solid #b3261e; background:#fff8f7;"></div>
-
-  <div id="reporte-card" class="card" style="display:flex; gap:24px; flex-wrap:wrap; align-items:center;">
-    <div><strong id="rep-total">0</strong><br><small style="color:#6b7280">Estudiantes</small></div>
-    <div><strong id="rep-aprobados" style="color:#1e7a34">0</strong><br><small style="color:#6b7280">Aprobados</small></div>
-    <div><strong id="rep-reprobados" style="color:#b3261e">0</strong><br><small style="color:#6b7280">Reprobados</small></div>
-    <div><strong id="rep-porcentaje">0%</strong><br><small style="color:#6b7280">% Aprobación</small></div>
+  <!-- Pestañas estilo Google Classroom -->
+  <div class="tabs" style="margin-top: 14px; margin-bottom: 20px;">
+    <button id="tab-btn-calificaciones" class="active" onclick="cambiarPestanaMateria('calificaciones')">📊 Calificaciones</button>
+    <button id="tab-btn-salon" onclick="cambiarPestanaMateria('salon')">🏫 Salón de clases</button>
   </div>
 
-  <div class="table-scroll">
-    <table id="tabla-notas">
-      <thead><tr id="thead-row"></tr></thead>
-      <tbody id="tbody-notas"></tbody>
-    </table>
+  <!-- Vista 1: Calificaciones -->
+  <div id="vista-calificaciones">
+    <div id="alerta-riesgo" class="card hidden" style="border-left:4px solid #b3261e; background:#fff8f7;"></div>
+
+    <div id="reporte-card" class="card" style="display:flex; gap:24px; flex-wrap:wrap; align-items:center;">
+      <div><strong id="rep-total">0</strong><br><small style="color:#6b7280">Estudiantes</small></div>
+      <div><strong id="rep-aprobados" style="color:#1e7a34">0</strong><br><small style="color:#6b7280">Aprobados</small></div>
+      <div><strong id="rep-reprobados" style="color:#b3261e">0</strong><br><small style="color:#6b7280">Reprobados</small></div>
+      <div><strong id="rep-porcentaje">0%</strong><br><small style="color:#6b7280">% Aprobación</small></div>
+    </div>
+
+    <div class="table-scroll">
+      <table id="tabla-notas">
+        <thead><tr id="thead-row"></tr></thead>
+        <tbody id="tbody-notas"></tbody>
+      </table>
+    </div>
   </div>
+
+  <!-- Vista 2: Salón de clases (Feed estilo Google Classroom) -->
+  <div id="vista-salon" class="hidden">
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:18px;">
+      <div>
+        <h2 style="color:var(--azul); margin:0; font-size:20px;">Trabajo de clase</h2>
+        <p style="color:var(--gris); margin:2px 0 0; font-size:13px;">Gestiona tareas, cuestionarios y vocabulario de esta materia.</p>
+      </div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button class="btn btn-secondary" onclick="abrirReporteAsignaciones()">📈 Reporte de asignaciones</button>
+        <button class="btn btn-primary" style="padding:10px 22px; font-size:14px; font-weight:700;" onclick="abrirModalAsignaciones()">+ Crear asignación</button>
+      </div>
+    </div>
+
+    <div id="feed-profesor-asignaciones" style="display:flex; flex-direction:column; gap:14px;"></div>
+  </div>
+
   <div id="empty-state" class="empty-state hidden"></div>
 </div>
 
@@ -100,9 +126,9 @@
 <!-- Modal asignaciones -->
 <div id="modal-asignaciones" class="modal-backdrop hidden">
   <div class="modal" style="max-width:720px;">
-    <h3>Asignaciones</h3>
-    <p style="color:#6b7280; font-size:13px; margin-top:-8px;">Cada asignación genera un código para que los estudiantes entren desde su celular o laptop, la entreguen, y la nota se sume automáticamente a su calificación.</p>
-    <div id="lista-asignaciones" style="max-height:300px; overflow-y:auto; margin-bottom:14px;"></div>
+    <h3 style="color:var(--azul);">+ Crear asignación</h3>
+    <p style="color:var(--gris); font-size:13px; margin-top:-8px;">Configura la asignación. Al guardarse aparecerá en el feed de Salón de clases con su código y QR para los estudiantes.</p>
+    <div id="lista-asignaciones" class="hidden"></div>
     <form id="form-asignacion">
       <label for="a-titulo">Título de la asignación</label>
       <input id="a-titulo" required placeholder="Ej: Ensayo capítulo 3" />
