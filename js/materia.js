@@ -277,15 +277,22 @@ function renderReporte() {
   document.getElementById("rep-porcentaje").textContent = pct + "%";
 }
 
+function componentesVisiblesEnTabla() {
+  // Los componentes creados automáticamente al crear una asignación (Salón de clases)
+  // no deben aparecer como columnas aquí; solo los componentes de nota manuales.
+  return componentes.filter(c => !(asignaciones || []).some(a => a.componente_id === c.id));
+}
+
 function renderTabla() {
   const thead = document.getElementById("thead-row");
   const tbody = document.getElementById("tbody-notas");
   const emptyState = document.getElementById("empty-state");
+  const componentesTabla = componentesVisiblesEnTabla();
 
-  if (estudiantes.length === 0 && componentes.length === 0) {
+  if (estudiantes.length === 0 && componentesTabla.length === 0) {
     document.getElementById("tabla-notas").classList.add("hidden");
     emptyState.classList.remove("hidden");
-    emptyState.textContent = "Agrega componentes de nota (ej: Quizz, Participación) y estudiantes para comenzar.";
+    emptyState.textContent = "Agrega componentes de nota (ej: Quizz, Participación) y estudiantes para comenzar. Las asignaciones se crean y califican en \"Salón de clases\".";
     return;
   }
   document.getElementById("tabla-notas").classList.remove("hidden");
@@ -293,16 +300,7 @@ function renderTabla() {
 
   thead.innerHTML = `
     <th class="nombre">No. / Estudiante</th>
-    ${componentes.map(c => {
-      const asig = (asignaciones || []).find(a => a.componente_id === c.id);
-      const nombreMostrado = asig
-        ? (asig.titulo.length > 22 ? asig.titulo.slice(0, 19) + "..." : asig.titulo)
-        : c.nombre;
-      const etiqueta = asig
-        ? `<div style="font-size:9px; color:var(--cyan-dark); font-weight:800; letter-spacing:.3px;">📌 TAREA</div>`
-        : "";
-      return `<th title="${escapeHtml(c.nombre)}">${etiqueta}${escapeHtml(nombreMostrado)}<br><small>(${c.puntos_max} pts)</small></th>`;
-    }).join("")}
+    ${componentesTabla.map(c => `<th>${escapeHtml(c.nombre)}<br><small>(${c.puntos_max} pts)</small></th>`).join("")}
     <th>Nota Final</th>
     <th>Status</th>
     <th>Clasificación</th>
@@ -319,7 +317,7 @@ function renderTabla() {
 
     fila.innerHTML = `
       <td class="nombre">${est.no_orden}. ${escapeHtml(est.nombre)}</td>
-      ${componentes.map(c => `
+      ${componentesTabla.map(c => `
         <td>
           <input type="number" step="0.01" class="celda-nota"
             data-estudiante="${est.id}" data-componente="${c.id}"
@@ -486,11 +484,12 @@ function abrirModalComponentes() {
 
 function renderListaComponentes() {
   const cont = document.getElementById("lista-componentes");
-  if (componentes.length === 0) {
-    cont.innerHTML = `<p style="color:#6b7280; font-size:13px;">Aún no hay componentes.</p>`;
+  const compManuales = componentesVisiblesEnTabla();
+  if (compManuales.length === 0) {
+    cont.innerHTML = `<p style="color:#6b7280; font-size:13px;">Aún no hay componentes manuales. Las notas de asignaciones se administran desde "Salón de clases".</p>`;
     return;
   }
-  cont.innerHTML = componentes.map(c => `
+  cont.innerHTML = compManuales.map(c => `
     <div style="display:flex; gap:6px; align-items:center; margin-bottom:8px;">
       <input type="text" value="${escapeHtml(c.nombre)}" data-id="${c.id}" class="comp-nombre" style="margin:0; flex:2;" />
       <input type="number" step="0.01" value="${c.puntos_max}" data-id="${c.id}" class="comp-puntos" style="margin:0; width:70px;" />
