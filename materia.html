@@ -191,7 +191,7 @@
       <input id="mat-titulo" required placeholder="Ej: Manual de gramática griega - capítulo 3" />
 
       <div id="bloque-material-archivo">
-        <label for="mat-archivo">Selecciona el archivo</label>
+        <label for="mat-archivo">Selecciona el archivo (máx. 25 MB)</label>
         <input id="mat-archivo" type="file" accept=".pdf,.doc,.docx,.ppt,.pptx" />
       </div>
 
@@ -200,13 +200,18 @@
         <input id="mat-url" type="url" placeholder="https://..." />
       </div>
 
+      <label for="mat-asignacion">Asignación relacionada (opcional)</label>
+      <select id="mat-asignacion">
+        <option value="">-- Ninguna (material general de la clase) --</option>
+      </select>
+
       <label for="mat-descripcion">Descripción (opcional)</label>
       <textarea id="mat-descripcion" rows="2" style="width:100%; padding:10px 12px; border:1px solid var(--borde); border-radius:6px; font-size:14px; margin-bottom:14px; font-family:inherit; resize:vertical;" placeholder="Breve nota para tus estudiantes"></textarea>
 
       <div class="error-msg" id="material-error"></div>
       <div style="display:flex; gap:8px; justify-content:flex-end">
         <button type="button" class="btn btn-secondary" onclick="cerrarModal('modal-material')">Cancelar</button>
-        <button type="submit" class="btn btn-primary" id="btn-guardar-material">Guardar material</button>
+        <button type="submit" class="btn btn-primary" id="btn-guardar-material">Subir material</button>
       </div>
     </form>
   </div>

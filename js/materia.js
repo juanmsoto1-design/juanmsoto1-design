@@ -724,7 +724,23 @@ function abrirModalMaterial() {
   document.getElementById("material-error").textContent = "";
   document.getElementById("mat-tipo").value = "archivo";
   onCambioTipoMaterial();
+
+  const selAsig = document.getElementById("mat-asignacion");
+  selAsig.innerHTML = `<option value="">-- Ninguna (material general de la clase) --</option>` +
+    (asignaciones || []).map(a => `<option value="${a.id}">${escapeHtml(a.titulo)}</option>`).join("");
+
   document.getElementById("modal-material").classList.remove("hidden");
+}
+
+function nombreArchivoSeguro(nombre) {
+  const idx = nombre.lastIndexOf(".");
+  const base = idx >= 0 ? nombre.slice(0, idx) : nombre;
+  const ext = idx >= 0 ? nombre.slice(idx) : "";
+  const baseSeguro = base
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // quita acentos
+    .replace(/[^a-zA-Z0-9_-]+/g, "_")
+    .slice(0, 80);
+  return (baseSeguro || "archivo") + ext.toLowerCase();
 }
 
 function onCambioTipoMaterial() {
@@ -761,6 +777,7 @@ function renderListaMateriales() {
           <div style="min-width:0;">
             <div style="font-weight:700; color:var(--azul); font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(m.titulo)}</div>
             ${m.descripcion ? `<div style="font-size:12px; color:var(--gris);">${escapeHtml(m.descripcion)}</div>` : ""}
+            ${m.asignacion_id ? `<div style="font-size:11px; color:var(--cyan-dark); font-weight:600;">📌 ${escapeHtml((asignaciones.find(a => a.id === m.asignacion_id) || {}).titulo || "Asignación")}</div>` : ""}
           </div>
         </div>
         <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
@@ -1353,12 +1370,13 @@ document.addEventListener("DOMContentLoaded", () => {
     const tipo = document.getElementById("mat-tipo").value;
     const titulo = document.getElementById("mat-titulo").value.trim();
     const descripcion = document.getElementById("mat-descripcion").value.trim() || null;
+    const asignacionSeleccionada = document.getElementById("mat-asignacion").value || null;
     const errorEl = document.getElementById("material-error");
     errorEl.textContent = "";
 
     const btn = document.getElementById("btn-guardar-material");
     btn.disabled = true;
-    btn.textContent = "Guardando...";
+    btn.textContent = "Subiendo...";
 
     try {
       if (tipo === "enlace") {
@@ -1369,7 +1387,8 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         const { error } = await window.sb.from("materiales").insert({
           materia_id: materiaId, tipo: "enlace", titulo, descripcion,
-          enlace_url: url, creado_por: perfilActual ? perfilActual.id : null
+          enlace_url: url, asignacion_id: asignacionSeleccionada,
+          creado_por: perfilActual ? perfilActual.id : null
         });
         if (error) { errorEl.textContent = "Error: " + error.message; return; }
       } else {
@@ -1384,13 +1403,20 @@ document.addEventListener("DOMContentLoaded", () => {
           errorEl.textContent = "Formato no permitido. Sube un PDF, Word (.doc/.docx) o PowerPoint (.ppt/.pptx).";
           return;
         }
-        const ruta = `${materiaId}/${Date.now()}-${file.name}`;
-        const { error: errSubida } = await window.sb.storage.from("materiales-clase").upload(ruta, file, { upsert: true });
+        const LIMITE_MB = 25;
+        if (file.size > LIMITE_MB * 1024 * 1024) {
+          errorEl.textContent = `El archivo pesa demasiado (máximo ${LIMITE_MB} MB). Comprímelo o súbelo a Google Drive y comparte el enlace.`;
+          return;
+        }
+        const nombreSeguro = nombreArchivoSeguro(file.name);
+        const ruta = `${materiaId}/${Date.now()}-${nombreSeguro}`;
+        const { error: errSubida } = await window.sb.storage.from("materiales-clase").upload(ruta, file, { upsert: true, cacheControl: "3600" });
         if (errSubida) { errorEl.textContent = "No se pudo subir el archivo: " + errSubida.message; return; }
         const { data: urlData } = window.sb.storage.from("materiales-clase").getPublicUrl(ruta);
         const { error } = await window.sb.from("materiales").insert({
           materia_id: materiaId, tipo: "archivo", titulo, descripcion,
           archivo_url: urlData.publicUrl, archivo_nombre: file.name,
+          asignacion_id: asignacionSeleccionada,
           creado_por: perfilActual ? perfilActual.id : null
         });
         if (error) { errorEl.textContent = "Error: " + error.message; return; }
@@ -1398,9 +1424,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
       cerrarModal("modal-material");
       await cargarTodo();
+    } catch (err) {
+      errorEl.textContent = "Ocurrió un error inesperado: " + (err && err.message ? err.message : err);
     } finally {
       btn.disabled = false;
-      btn.textContent = "Guardar material";
+      btn.textContent = "Subir material";
     }
   });
 
