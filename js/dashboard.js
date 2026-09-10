@@ -4,12 +4,18 @@ async function init() {
   const session = await requireSession();
   if (!session) return;
   miPerfil = await getMyProfile();
+  montarSidebar({ activo: "dashboard", mostrarAdmin: miPerfil.role === "administrador" });
   document.getElementById("user-label").textContent =
     `${miPerfil.full_name} · ${etiquetaRol(miPerfil.role)}`;
   if (miPerfil.role === "administrador") {
     document.getElementById("btn-admin").classList.remove("hidden");
   }
   await cargarMaterias();
+
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("accion") === "password") {
+    abrirModalPassword();
+  }
 }
 
 function abrirModalPassword() {

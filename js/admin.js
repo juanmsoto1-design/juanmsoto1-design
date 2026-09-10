@@ -25,11 +25,15 @@ async function init() {
   const session = await requireSession();
   if (!session) return;
   const perfil = await getMyProfile();
+  montarSidebar({ activo: "admin", mostrarAdmin: perfil.role === "administrador" });
+  if (perfil.role === "administrador") {
+    document.getElementById("btn-admin").classList.remove("hidden");
+  }
   document.getElementById("user-label").textContent =
     `${perfil.full_name} · ${perfil.role === "administrador" ? "Administrador" : perfil.role === "secretario" ? "Secretario" : "Profesor"}`;
 
   if (perfil.role !== "administrador") {
-    document.body.innerHTML = "<div class='container'><p style='padding:40px; text-align:center; color:#b3261e;'>Solo un administrador puede acceder al panel de administración.</p><a href='dashboard.html' class='back-link' style='display:block; text-align:center;'>← Volver</a></div>";
+    document.querySelector(".main-content").innerHTML = "<div class='container'><p style='padding:40px; text-align:center; color:#b3261e;'>Solo un administrador puede acceder al panel de administración.</p><a href='dashboard.html' class='back-link' style='display:block; text-align:center;'>← Volver</a></div>";
     return;
   }
 

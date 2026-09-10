@@ -523,3 +523,154 @@ input.celda-nota:focus {
   background: var(--azul-claro);
   color: var(--azul);
 }
+
+/* ===== Sidebar tipo portal universitario ===== */
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+  align-items: stretch;
+}
+
+.sidebar {
+  width: 250px;
+  flex-shrink: 0;
+  background: white;
+  border-right: 1px solid var(--borde);
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+.sidebar-brand {
+  padding: 18px 16px;
+  font-weight: 800;
+  font-size: 15px;
+  color: var(--azul);
+  border-bottom: 1px solid var(--borde);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sidebar-nav {
+  flex: 1;
+  padding: 10px 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-section-title {
+  padding: 16px 16px 2px;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--azul);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #3c4043;
+  text-decoration: none;
+  border-left: 3px solid transparent;
+  cursor: pointer;
+  background: none;
+  border-top: none;
+  border-right: none;
+  border-bottom: none;
+  width: 100%;
+  text-align: left;
+}
+
+.sidebar-item:hover {
+  background: #f5f7fa;
+  color: var(--azul);
+}
+
+.sidebar-item.active {
+  background: var(--azul-claro);
+  color: var(--azul);
+  border-left: 3px solid var(--cyan);
+  font-weight: 700;
+}
+
+.sidebar-item.sub {
+  padding-left: 32px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.sidebar-item.danger {
+  color: var(--rojo);
+}
+
+.sidebar-item.danger:hover {
+  background: #fce8e6;
+}
+
+.sidebar-separator {
+  border-top: 1px solid var(--borde);
+  margin: 10px 0;
+}
+
+.sidebar-footer {
+  border-top: 1px solid var(--borde);
+  padding: 14px 16px;
+}
+
+.sidebar-toggle {
+  display: none;
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  z-index: 60;
+  background: white;
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  width: 40px;
+  height: 40px;
+  font-size: 18px;
+  color: var(--azul);
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(60,64,67,0.12);
+}
+
+.main-content {
+  flex: 1;
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
+  .sidebar-toggle {
+    display: block;
+  }
+  .sidebar {
+    position: fixed;
+    left: -260px;
+    top: 0;
+    z-index: 55;
+    box-shadow: 0 0 24px rgba(0,0,0,0.15);
+    transition: left .2s ease;
+  }
+  body.sidebar-open .sidebar {
+    left: 0;
+  }
+  body.sidebar-open::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.3);
+    z-index: 54;
+  }
+  .main-content {
+    padding-top: 46px;
+  }
+}

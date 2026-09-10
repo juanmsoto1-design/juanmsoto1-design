@@ -8,27 +8,22 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-<div class="topbar">
-  <h1>📚 Registro de Calificaciones</h1>
-  <div class="user-info">
-    <span id="user-label"></span>
-    <button onclick="window.location.href='reportes.html'">📊 Reportes</button>
-    <button id="btn-admin" class="hidden" onclick="window.location.href='admin.html'">Administración</button>
-    <button onclick="abrirModalPassword()">Mi contraseña</button>
-    <button onclick="logout()">Salir</button>
-  </div>
-</div>
+<div class="app-shell">
+  <div id="sidebar-mount"></div>
 
-<div class="container">
-  <div class="toolbar">
-    <h2 style="margin:0">Mis materias</h2>
-    <div class="toolbar-actions">
-      <button class="btn btn-primary" onclick="abrirModalMateria()">+ Nueva materia</button>
+  <div class="main-content">
+    <div class="container">
+      <div class="toolbar">
+        <h2 style="margin:0">Mis materias</h2>
+        <div class="toolbar-actions">
+          <button class="btn btn-primary" onclick="abrirModalMateria()">+ Nueva materia</button>
+        </div>
+      </div>
+
+      <div id="materias-grid" class="materia-grid"></div>
+      <div id="empty-state" class="empty-state hidden">Aún no hay materias registradas. Crea la primera con "+ Nueva materia".</div>
     </div>
   </div>
-
-  <div id="materias-grid" class="materia-grid"></div>
-  <div id="empty-state" class="empty-state hidden">Aún no hay materias registradas. Crea la primera con "+ Nueva materia".</div>
 </div>
 
 <div id="modal-materia" class="modal-backdrop hidden">
@@ -65,6 +60,7 @@
 
 <script src="js/config.js"></script>
 <script src="js/supabaseClient.js"></script>
+<script src="js/sidebar.js"></script>
 <script src="js/dashboard.js"></script>
 </body>
 </html>

@@ -10,43 +10,13 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 <body>
-<div class="topbar">
-  <h1 id="materia-titulo">📚 Materia</h1>
-  <div class="user-info">
-    <span id="user-label"></span>
-    <button onclick="logout()">Salir</button>
-  </div>
-</div>
+<div class="app-shell">
+  <div id="sidebar-mount"></div>
 
-<div class="container">
-  <a href="dashboard.html" class="back-link">← Volver a mis materias</a>
-
-  <div class="toolbar">
-    <div>
-      <div id="materia-periodo" style="color:#6b7280; font-size:14px;"></div>
+  <div class="main-content">
+    <div class="container">
       <div class="saving-indicator" id="saving-indicator"></div>
-    </div>
-    <div class="toolbar-actions">
-      <button class="btn btn-secondary" onclick="abrirModalMateriaInfo()">✎ Editar materia</button>
-      <button class="btn btn-secondary" onclick="abrirModalComponentes()">⚙ Componentes</button>
-      <button class="btn btn-secondary" onclick="abrirModalEstudiante()">+ Estudiante</button>
-      <button class="btn btn-secondary" onclick="document.getElementById('input-excel').click()">⇪ Subir Excel</button>
-      <button class="btn btn-secondary" onclick="abrirModalRegistro()">🔗 Link de auto-registro</button>
-      <button class="btn btn-danger" onclick="eliminarTodosEstudiantes()">🗑 Eliminar todos los estudiantes</button>
-      <button class="btn btn-secondary" onclick="abrirModalAsignaciones()">📌 Asignaciones</button>
-      <button class="btn btn-secondary" onclick="abrirReporteAsignaciones()">📈 Reporte de asignaciones</button>
-      <button class="btn btn-secondary" onclick="abrirReporteFinal()">📄 Reporte final de la materia</button>
-      <button class="btn btn-secondary hidden" id="btn-secretarios" onclick="abrirModalSecretarios()">👥 Secretarios</button>
-      <button class="btn btn-danger" onclick="eliminarMateria()">🗑 Eliminar materia</button>
       <input type="file" id="input-excel" accept=".xlsx,.xls" class="hidden" />
-    </div>
-  </div>
-
-  <!-- Pestañas estilo Google Classroom -->
-  <div class="tabs" style="margin-top: 14px; margin-bottom: 20px;">
-    <button id="tab-btn-calificaciones" class="active" onclick="cambiarPestanaMateria('calificaciones')">📊 Calificaciones</button>
-    <button id="tab-btn-salon" onclick="cambiarPestanaMateria('salon')">🏫 Salón de clases</button>
-  </div>
 
   <!-- Vista 1: Calificaciones -->
   <div id="vista-calificaciones">
@@ -83,7 +53,9 @@
     <div id="feed-profesor-asignaciones" style="display:flex; flex-direction:column; gap:14px;"></div>
   </div>
 
-  <div id="empty-state" class="empty-state hidden"></div>
+      <div id="empty-state" class="empty-state hidden"></div>
+    </div>
+  </div>
 </div>
 
 <!-- Modal editar info materia -->
@@ -300,6 +272,7 @@
 
 <script src="js/config.js"></script>
 <script src="js/supabaseClient.js"></script>
+<script src="js/sidebar.js"></script>
 <script src="js/materia.js"></script>
 </body>
 </html>

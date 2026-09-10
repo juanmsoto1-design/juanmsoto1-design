@@ -44,6 +44,10 @@ async function init() {
   const session = await requireSession();
   if (!session) return;
   perfilActual = await getMyProfile();
+  montarSidebar({ contexto: "materia", mostrarAdmin: perfilActual.role === "administrador" });
+  if (perfilActual.role === "administrador") {
+    document.getElementById("btn-admin").classList.remove("hidden");
+  }
   document.getElementById("user-label").textContent =
     `${perfilActual.full_name} · ${perfilActual.role === "administrador" ? "Administrador" : perfilActual.role === "secretario" ? "Secretario" : "Profesor"}`;
 
