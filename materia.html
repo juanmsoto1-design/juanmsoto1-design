@@ -50,6 +50,17 @@
       </div>
     </div>
 
+    <div class="card" style="margin-bottom:20px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
+        <div>
+          <h3 style="margin:0; color:var(--azul); font-size:16px;">📎 Materiales de la clase</h3>
+          <p style="color:var(--gris); margin:2px 0 0; font-size:12px;">Libros, PPT, documentos Word, videos y artículos para tus estudiantes.</p>
+        </div>
+        <button class="btn btn-secondary" onclick="abrirModalMaterial()">+ Agregar material</button>
+      </div>
+      <div id="lista-materiales" style="display:flex; flex-direction:column; gap:8px;"></div>
+    </div>
+
     <div id="feed-profesor-asignaciones" style="display:flex; flex-direction:column; gap:14px;"></div>
   </div>
 
@@ -160,6 +171,42 @@
       <div style="display:flex; gap:8px; justify-content:flex-end">
         <button type="button" class="btn btn-secondary" onclick="cerrarModal('modal-asignaciones')">Cerrar</button>
         <button type="submit" class="btn btn-primary">Crear asignación y generar código</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal agregar material de la clase -->
+<div id="modal-material" class="modal-backdrop hidden">
+  <div class="modal" style="max-width:520px;">
+    <h3 style="color:var(--azul);">Agregar material</h3>
+    <form id="form-material">
+      <label for="mat-tipo">Tipo de material</label>
+      <select id="mat-tipo" onchange="onCambioTipoMaterial()">
+        <option value="archivo">Archivo (PDF, Word o PowerPoint)</option>
+        <option value="enlace">Enlace (video, artículo, página web)</option>
+      </select>
+
+      <label for="mat-titulo">Título</label>
+      <input id="mat-titulo" required placeholder="Ej: Manual de gramática griega - capítulo 3" />
+
+      <div id="bloque-material-archivo">
+        <label for="mat-archivo">Selecciona el archivo</label>
+        <input id="mat-archivo" type="file" accept=".pdf,.doc,.docx,.ppt,.pptx" />
+      </div>
+
+      <div id="bloque-material-enlace" class="hidden">
+        <label for="mat-url">Enlace (URL)</label>
+        <input id="mat-url" type="url" placeholder="https://..." />
+      </div>
+
+      <label for="mat-descripcion">Descripción (opcional)</label>
+      <textarea id="mat-descripcion" rows="2" style="width:100%; padding:10px 12px; border:1px solid var(--borde); border-radius:6px; font-size:14px; margin-bottom:14px; font-family:inherit; resize:vertical;" placeholder="Breve nota para tus estudiantes"></textarea>
+
+      <div class="error-msg" id="material-error"></div>
+      <div style="display:flex; gap:8px; justify-content:flex-end">
+        <button type="button" class="btn btn-secondary" onclick="cerrarModal('modal-material')">Cancelar</button>
+        <button type="submit" class="btn btn-primary" id="btn-guardar-material">Guardar material</button>
       </div>
     </form>
   </div>

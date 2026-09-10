@@ -10,6 +10,8 @@ let asignaciones = [];
 let entregasGlobales = [];
 let realtimeChannel = null;
 let perfilActual = null;
+let materiales = [];
+const EXTENSIONES_MATERIAL_VALIDAS = [".pdf", ".doc", ".docx", ".ppt", ".pptx"];
 
 function escapeHtml(str) {
   if (str === null || str === undefined) return "";
@@ -32,6 +34,7 @@ function cambiarPestanaMateria(pestana) {
     vistaCalifs.classList.add("hidden");
     vistaSalon.classList.remove("hidden");
     renderListaAsignaciones();
+    renderListaMateriales();
   } else {
     tabCalifs.classList.add("active");
     tabSalon.classList.remove("active");
@@ -75,12 +78,13 @@ async function cargarTodo() {
   document.getElementById("materia-titulo").textContent = "📚 " + materia.nombre;
   document.getElementById("materia-periodo").textContent = materia.periodo || "";
 
-  const [{ data: comps }, { data: ests }, { data: califs }, { data: esc }, { data: asigs }] = await Promise.all([
+  const [{ data: comps }, { data: ests }, { data: califs }, { data: esc }, { data: asigs }, { data: mats }] = await Promise.all([
     window.sb.from("componentes").select("*").eq("materia_id", materiaId).order("orden", { ascending: true }),
     window.sb.from("estudiantes").select("*").eq("materia_id", materiaId).order("no_orden", { ascending: true }),
     window.sb.from("calificaciones").select("*, estudiantes!inner(materia_id)").eq("estudiantes.materia_id", materiaId),
     window.sb.from("escala_niveles").select("*").or(`materia_id.eq.${materiaId},materia_id.is.null`),
-    window.sb.from("asignaciones").select("*").eq("materia_id", materiaId).order("created_at", { ascending: false })
+    window.sb.from("asignaciones").select("*").eq("materia_id", materiaId).order("created_at", { ascending: false }),
+    window.sb.from("materiales").select("*").eq("materia_id", materiaId).order("created_at", { ascending: false })
   ]);
 
   componentes = comps || [];
@@ -91,6 +95,7 @@ async function cargarTodo() {
     calificaciones[c.estudiante_id][c.componente_id] = c.valor;
   });
   asignaciones = asigs || [];
+  materiales = mats || [];
 
   if (asignaciones.length > 0) {
     const { data: entrs } = await window.sb
@@ -114,6 +119,7 @@ async function cargarTodo() {
   renderReporte();
   renderAlertaRiesgo();
   renderListaAsignaciones();
+  renderListaMateriales();
 }
 
 // ---------- Gestión de secretarios por materia (solo profesor dueño o administrador) ----------
@@ -713,6 +719,69 @@ function enlaceEntrega(codigo) {
   return `${window.location.origin}/entrar.html?codigo=${codigo}`;
 }
 
+function abrirModalMaterial() {
+  document.getElementById("form-material").reset();
+  document.getElementById("material-error").textContent = "";
+  document.getElementById("mat-tipo").value = "archivo";
+  onCambioTipoMaterial();
+  document.getElementById("modal-material").classList.remove("hidden");
+}
+
+function onCambioTipoMaterial() {
+  const tipo = document.getElementById("mat-tipo").value;
+  document.getElementById("bloque-material-archivo").classList.toggle("hidden", tipo !== "archivo");
+  document.getElementById("bloque-material-enlace").classList.toggle("hidden", tipo !== "enlace");
+}
+
+function iconoMaterial(m) {
+  if (m.tipo === "enlace") return "🔗";
+  const nombre = (m.archivo_nombre || "").toLowerCase();
+  if (nombre.endsWith(".pdf")) return "📕";
+  if (nombre.endsWith(".ppt") || nombre.endsWith(".pptx")) return "📊";
+  if (nombre.endsWith(".doc") || nombre.endsWith(".docx")) return "📄";
+  return "📎";
+}
+
+function renderListaMateriales() {
+  const cont = document.getElementById("lista-materiales");
+  if (!cont) return;
+
+  if (!materiales || materiales.length === 0) {
+    cont.innerHTML = `<p style="color:var(--gris); font-size:13px; margin:6px 0;">Aún no has subido materiales para esta materia.</p>`;
+    return;
+  }
+
+  cont.innerHTML = materiales.map(m => {
+    const enlace = m.tipo === "enlace" ? m.enlace_url : m.archivo_url;
+    const textoAccion = m.tipo === "enlace" ? "Abrir enlace ↗" : "Descargar ↓";
+    return `
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 12px; border:1px solid var(--borde); border-radius:8px;">
+        <div style="display:flex; align-items:center; gap:10px; min-width:0;">
+          <span style="font-size:20px;">${iconoMaterial(m)}</span>
+          <div style="min-width:0;">
+            <div style="font-weight:700; color:var(--azul); font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(m.titulo)}</div>
+            ${m.descripcion ? `<div style="font-size:12px; color:var(--gris);">${escapeHtml(m.descripcion)}</div>` : ""}
+          </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
+          <a class="btn btn-secondary" style="padding:6px 12px; font-size:12px;" href="${enlace}" target="_blank" rel="noopener">${textoAccion}</a>
+          <button type="button" class="btn btn-danger" style="padding:6px 10px; font-size:12px;" onclick="eliminarMaterial('${m.id}')">🗑</button>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+async function eliminarMaterial(id) {
+  if (!confirm("¿Eliminar este material? Los estudiantes ya no podrán verlo.")) return;
+  const { error } = await window.sb.from("materiales").delete().eq("id", id);
+  if (error) {
+    alert("No se pudo eliminar: " + error.message);
+    return;
+  }
+  await cargarTodo();
+}
+
 function renderListaAsignaciones() {
   const cont = document.getElementById("feed-profesor-asignaciones") || document.getElementById("lista-asignaciones");
   if (!cont) return;
@@ -1277,6 +1346,62 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     cerrarModal("modal-estudiante");
     await cargarTodo();
+  });
+
+  document.getElementById("form-material").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const tipo = document.getElementById("mat-tipo").value;
+    const titulo = document.getElementById("mat-titulo").value.trim();
+    const descripcion = document.getElementById("mat-descripcion").value.trim() || null;
+    const errorEl = document.getElementById("material-error");
+    errorEl.textContent = "";
+
+    const btn = document.getElementById("btn-guardar-material");
+    btn.disabled = true;
+    btn.textContent = "Guardando...";
+
+    try {
+      if (tipo === "enlace") {
+        const url = document.getElementById("mat-url").value.trim();
+        if (!url) {
+          errorEl.textContent = "Escribe el enlace (URL).";
+          return;
+        }
+        const { error } = await window.sb.from("materiales").insert({
+          materia_id: materiaId, tipo: "enlace", titulo, descripcion,
+          enlace_url: url, creado_por: perfilActual ? perfilActual.id : null
+        });
+        if (error) { errorEl.textContent = "Error: " + error.message; return; }
+      } else {
+        const input = document.getElementById("mat-archivo");
+        const file = input.files[0];
+        if (!file) {
+          errorEl.textContent = "Selecciona un archivo.";
+          return;
+        }
+        const extension = "." + file.name.split(".").pop().toLowerCase();
+        if (!EXTENSIONES_MATERIAL_VALIDAS.includes(extension)) {
+          errorEl.textContent = "Formato no permitido. Sube un PDF, Word (.doc/.docx) o PowerPoint (.ppt/.pptx).";
+          return;
+        }
+        const ruta = `${materiaId}/${Date.now()}-${file.name}`;
+        const { error: errSubida } = await window.sb.storage.from("materiales-clase").upload(ruta, file, { upsert: true });
+        if (errSubida) { errorEl.textContent = "No se pudo subir el archivo: " + errSubida.message; return; }
+        const { data: urlData } = window.sb.storage.from("materiales-clase").getPublicUrl(ruta);
+        const { error } = await window.sb.from("materiales").insert({
+          materia_id: materiaId, tipo: "archivo", titulo, descripcion,
+          archivo_url: urlData.publicUrl, archivo_nombre: file.name,
+          creado_por: perfilActual ? perfilActual.id : null
+        });
+        if (error) { errorEl.textContent = "Error: " + error.message; return; }
+      }
+
+      cerrarModal("modal-material");
+      await cargarTodo();
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "Guardar material";
+    }
   });
 
   document.getElementById("form-materia-info").addEventListener("submit", async (e) => {
