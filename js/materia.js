@@ -293,7 +293,16 @@ function renderTabla() {
 
   thead.innerHTML = `
     <th class="nombre">No. / Estudiante</th>
-    ${componentes.map(c => `<th>${escapeHtml(c.nombre)}<br><small>(${c.puntos_max} pts)</small></th>`).join("")}
+    ${componentes.map(c => {
+      const asig = (asignaciones || []).find(a => a.componente_id === c.id);
+      const nombreMostrado = asig
+        ? (asig.titulo.length > 22 ? asig.titulo.slice(0, 19) + "..." : asig.titulo)
+        : c.nombre;
+      const etiqueta = asig
+        ? `<div style="font-size:9px; color:var(--cyan-dark); font-weight:800; letter-spacing:.3px;">📌 TAREA</div>`
+        : "";
+      return `<th title="${escapeHtml(c.nombre)}">${etiqueta}${escapeHtml(nombreMostrado)}<br><small>(${c.puntos_max} pts)</small></th>`;
+    }).join("")}
     <th>Nota Final</th>
     <th>Status</th>
     <th>Clasificación</th>
