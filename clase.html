@@ -444,6 +444,24 @@ function iconoMaterialClase(m) {
   return Icon("paperclip");
 }
 
+function tarjetaMaterialClaseHtml(m) {
+  const enlace = m.tipo === "enlace" ? m.enlace_url : m.archivo_url;
+  const textoAccion = m.tipo === "enlace" ? "Abrir enlace" : "Descargar";
+  return `
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 12px; border:1px solid var(--borde); border-radius:8px;">
+      <div style="display:flex; align-items:center; gap:10px; min-width:0;">
+        <span style="font-size:20px;">${iconoMaterialClase(m)}</span>
+        <div style="min-width:0;">
+          <div style="font-weight:700; color:var(--azul); font-size:14px;">${escapeHtml(m.titulo)}</div>
+          ${m.descripcion ? `<div style="font-size:12px; color:var(--gris);">${escapeHtml(m.descripcion)}</div>` : ""}
+          ${m.asignacion_titulo ? `<div style="font-size:11px; color:var(--cyan-dark); font-weight:600;">${Icon("pin")} ${escapeHtml(m.asignacion_titulo)}</div>` : ""}
+        </div>
+      </div>
+      <a class="btn btn-secondary" style="padding:6px 12px; font-size:12px; flex-shrink:0;" href="${enlace}" target="_blank" rel="noopener">${textoAccion}</a>
+    </div>
+  `;
+}
+
 async function cargarMateriales() {
   const tarjeta = document.getElementById("tarjeta-materiales");
   const cont = document.getElementById("materiales-lista");
@@ -458,23 +476,25 @@ async function cargarMateriales() {
   }
 
   tarjeta.style.display = "block";
-  cont.innerHTML = data.map(m => {
-    const enlace = m.tipo === "enlace" ? m.enlace_url : m.archivo_url;
-    const textoAccion = m.tipo === "enlace" ? "Abrir enlace" : "Descargar";
+
+  const consulta = data.filter(m => m.categoria === "consulta");
+  const clase = data.filter(m => m.categoria !== "consulta");
+
+  const bloque = (titulo, lista) => {
+    if (lista.length === 0) return "";
     return `
-      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 12px; border:1px solid var(--borde); border-radius:8px;">
-        <div style="display:flex; align-items:center; gap:10px; min-width:0;">
-          <span style="font-size:20px;">${iconoMaterialClase(m)}</span>
-          <div style="min-width:0;">
-            <div style="font-weight:700; color:var(--azul); font-size:14px;">${escapeHtml(m.titulo)}</div>
-            ${m.descripcion ? `<div style="font-size:12px; color:var(--gris);">${escapeHtml(m.descripcion)}</div>` : ""}
-            ${m.asignacion_titulo ? `<div style="font-size:11px; color:var(--cyan-dark); font-weight:600;">${Icon("pin")} ${escapeHtml(m.asignacion_titulo)}</div>` : ""}
-          </div>
+      <div style="margin-bottom:10px;">
+        <div style="font-size:12px; font-weight:800; color:var(--gris); text-transform:uppercase; letter-spacing:.3px; margin-bottom:6px;">${titulo}</div>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          ${lista.map(tarjetaMaterialClaseHtml).join("")}
         </div>
-        <a class="btn btn-secondary" style="padding:6px 12px; font-size:12px; flex-shrink:0;" href="${enlace}" target="_blank" rel="noopener">${textoAccion}</a>
       </div>
     `;
-  }).join("");
+  };
+
+  cont.innerHTML =
+    bloque("Material de consulta (libros y artículos)", consulta) +
+    bloque("Material de la clase (del profesor)", clase);
 }
 
 async function cargarFeed() {

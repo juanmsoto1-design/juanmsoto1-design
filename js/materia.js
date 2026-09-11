@@ -534,6 +534,12 @@ function abrirModalAsignaciones() {
   renderPreguntasBuilder();
   renderVocabularioBuilder();
   renderListaAsignaciones();
+
+  const selMaterial = document.getElementById("a-material-lectura");
+  const materialesDisponibles = (materiales || []).filter(m => !m.asignacion_id);
+  selMaterial.innerHTML = `<option value="">-- Ninguno --</option>` +
+    materialesDisponibles.map(m => `<option value="${m.id}">${escapeHtml(m.titulo)}</option>`).join("");
+
   document.getElementById("modal-asignaciones").classList.remove("hidden");
 }
 
@@ -731,6 +737,7 @@ function abrirModalMaterial() {
   document.getElementById("form-material").reset();
   document.getElementById("material-error").textContent = "";
   document.getElementById("mat-tipo").value = "archivo";
+  document.getElementById("mat-categoria").value = "clase";
   onCambioTipoMaterial();
 
   const selAsig = document.getElementById("mat-asignacion");
@@ -766,6 +773,27 @@ function iconoMaterial(m) {
   return Icon("paperclip");
 }
 
+function tarjetaMaterialHtml(m) {
+  const enlace = m.tipo === "enlace" ? m.enlace_url : m.archivo_url;
+  const textoAccion = m.tipo === "enlace" ? "Abrir enlace" : "Descargar";
+  return `
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 12px; border:1px solid var(--borde); border-radius:8px;">
+      <div style="display:flex; align-items:center; gap:10px; min-width:0;">
+        <span style="font-size:20px;">${iconoMaterial(m)}</span>
+        <div style="min-width:0;">
+          <div style="font-weight:700; color:var(--azul); font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(m.titulo)}</div>
+          ${m.descripcion ? `<div style="font-size:12px; color:var(--gris);">${escapeHtml(m.descripcion)}</div>` : ""}
+          ${m.asignacion_id ? `<div style="font-size:11px; color:var(--cyan-dark); font-weight:600;">${Icon("pin")} ${escapeHtml((asignaciones.find(a => a.id === m.asignacion_id) || {}).titulo || "Asignación")}</div>` : ""}
+        </div>
+      </div>
+      <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
+        <a class="btn btn-secondary" style="padding:6px 12px; font-size:12px;" href="${enlace}" target="_blank" rel="noopener">${textoAccion}</a>
+        <button type="button" class="btn btn-danger" style="padding:6px 10px; font-size:12px;" onclick="eliminarMaterial('${m.id}')">${Icon("trash")}</button>
+      </div>
+    </div>
+  `;
+}
+
 function renderListaMateriales() {
   const cont = document.getElementById("lista-materiales");
   if (!cont) return;
@@ -775,26 +803,24 @@ function renderListaMateriales() {
     return;
   }
 
-  cont.innerHTML = materiales.map(m => {
-    const enlace = m.tipo === "enlace" ? m.enlace_url : m.archivo_url;
-    const textoAccion = m.tipo === "enlace" ? "Abrir enlace" : "Descargar";
+  const consulta = materiales.filter(m => m.categoria === "consulta");
+  const clase = materiales.filter(m => m.categoria !== "consulta");
+
+  const bloque = (titulo, lista) => {
+    if (lista.length === 0) return "";
     return `
-      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 12px; border:1px solid var(--borde); border-radius:8px;">
-        <div style="display:flex; align-items:center; gap:10px; min-width:0;">
-          <span style="font-size:20px;">${iconoMaterial(m)}</span>
-          <div style="min-width:0;">
-            <div style="font-weight:700; color:var(--azul); font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(m.titulo)}</div>
-            ${m.descripcion ? `<div style="font-size:12px; color:var(--gris);">${escapeHtml(m.descripcion)}</div>` : ""}
-            ${m.asignacion_id ? `<div style="font-size:11px; color:var(--cyan-dark); font-weight:600;">${Icon("pin")} ${escapeHtml((asignaciones.find(a => a.id === m.asignacion_id) || {}).titulo || "Asignación")}</div>` : ""}
-          </div>
-        </div>
-        <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
-          <a class="btn btn-secondary" style="padding:6px 12px; font-size:12px;" href="${enlace}" target="_blank" rel="noopener">${textoAccion}</a>
-          <button type="button" class="btn btn-danger" style="padding:6px 10px; font-size:12px;" onclick="eliminarMaterial('${m.id}')">${Icon("trash")}</button>
+      <div style="margin-bottom:6px;">
+        <div style="font-size:12px; font-weight:800; color:var(--gris); text-transform:uppercase; letter-spacing:.3px; margin-bottom:6px;">${titulo}</div>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          ${lista.map(tarjetaMaterialHtml).join("")}
         </div>
       </div>
     `;
-  }).join("");
+  };
+
+  cont.innerHTML =
+    bloque("Material de consulta (libros y artículos)", consulta) +
+    bloque("Material de la clase (del profesor)", clase);
 }
 
 async function eliminarMaterial(id) {
@@ -1379,6 +1405,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const titulo = document.getElementById("mat-titulo").value.trim();
     const descripcion = document.getElementById("mat-descripcion").value.trim() || null;
     const asignacionSeleccionada = document.getElementById("mat-asignacion").value || null;
+    const categoria = document.getElementById("mat-categoria").value || "clase";
     const errorEl = document.getElementById("material-error");
     errorEl.textContent = "";
 
@@ -1394,7 +1421,7 @@ document.addEventListener("DOMContentLoaded", () => {
           return;
         }
         const { error } = await window.sb.from("materiales").insert({
-          materia_id: materiaId, tipo: "enlace", titulo, descripcion,
+          materia_id: materiaId, tipo: "enlace", titulo, descripcion, categoria,
           enlace_url: url, asignacion_id: asignacionSeleccionada,
           creado_por: perfilActual ? perfilActual.id : null
         });
@@ -1411,7 +1438,7 @@ document.addEventListener("DOMContentLoaded", () => {
           errorEl.textContent = "Formato no permitido. Sube un PDF, Word (.doc/.docx) o PowerPoint (.ppt/.pptx).";
           return;
         }
-        const LIMITE_MB = 25;
+        const LIMITE_MB = 50;
         if (file.size > LIMITE_MB * 1024 * 1024) {
           errorEl.textContent = `El archivo pesa demasiado (máximo ${LIMITE_MB} MB). Comprímelo o súbelo a Google Drive y comparte el enlace.`;
           return;
@@ -1422,7 +1449,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (errSubida) { errorEl.textContent = "No se pudo subir el archivo: " + errSubida.message; return; }
         const { data: urlData } = window.sb.storage.from("materiales-clase").getPublicUrl(ruta);
         const { error } = await window.sb.from("materiales").insert({
-          materia_id: materiaId, tipo: "archivo", titulo, descripcion,
+          materia_id: materiaId, tipo: "archivo", titulo, descripcion, categoria,
           archivo_url: urlData.publicUrl, archivo_nombre: file.name,
           asignacion_id: asignacionSeleccionada,
           creado_por: perfilActual ? perfilActual.id : null
@@ -1613,6 +1640,12 @@ document.addEventListener("DOMContentLoaded", () => {
         await window.sb.from("componentes").delete().eq("id", comp.id);
         return;
       }
+    }
+
+    // 4) si se seleccionó un material de lectura, vincularlo a esta asignación
+    const materialLecturaId = document.getElementById("a-material-lectura").value || null;
+    if (materialLecturaId) {
+      await window.sb.from("materiales").update({ asignacion_id: asignacionCreada.id }).eq("id", materialLecturaId);
     }
 
     document.getElementById("form-asignacion").reset();

@@ -130,6 +130,12 @@
       <label for="a-descripcion">Descripción / instrucciones (opcional)</label>
       <textarea id="a-descripcion" rows="4" placeholder="Escribe aquí instrucciones generales o el contenido de la asignación" style="width:100%; padding:10px 12px; border:1px solid var(--borde); border-radius:6px; font-size:14px; margin-bottom:14px; font-family:inherit; resize:vertical;"></textarea>
 
+      <label for="a-material-lectura">Material de lectura relacionado (opcional)</label>
+      <select id="a-material-lectura">
+        <option value="">-- Ninguno --</option>
+      </select>
+      <p style="color:#6b7280; font-size:12px; margin-top:-10px;">Ej: sube primero el libro/artículo en "Materiales de la clase" y aquí selecciónalo para que quede junto a esta asignación (útil para "leer esto, luego el quiz de esto").</p>
+
       <div style="display:flex; gap:10px;">
         <div style="flex:1;">
           <label for="a-fecha-asignada">Fecha asignada</label>
@@ -181,6 +187,12 @@
   <div class="modal" style="max-width:520px;">
     <h3 style="color:var(--azul);">Agregar material</h3>
     <form id="form-material">
+      <label for="mat-categoria">Categoría del material</label>
+      <select id="mat-categoria">
+        <option value="consulta">Material de consulta (libros y artículos para leer)</option>
+        <option value="clase">Material de la clase (unidades y presentaciones del profesor)</option>
+      </select>
+
       <label for="mat-tipo">Tipo de material</label>
       <select id="mat-tipo" onchange="onCambioTipoMaterial()">
         <option value="archivo">Archivo (PDF, Word o PowerPoint)</option>
@@ -191,7 +203,7 @@
       <input id="mat-titulo" required placeholder="Ej: Manual de gramática griega - capítulo 3" />
 
       <div id="bloque-material-archivo">
-        <label for="mat-archivo">Selecciona el archivo (máx. 25 MB)</label>
+        <label for="mat-archivo">Selecciona el archivo (máx. 50 MB)</label>
         <input id="mat-archivo" type="file" accept=".pdf,.doc,.docx,.ppt,.pptx" />
       </div>
 
