@@ -109,8 +109,8 @@
 <!-- Modal asignaciones -->
 <div id="modal-asignaciones" class="modal-backdrop hidden">
   <div class="modal" style="max-width:720px;">
-    <h3 style="color:var(--azul);">+ Crear asignación</h3>
-    <p style="color:var(--gris); font-size:13px; margin-top:-8px;">Configura la asignación. Al guardarse aparecerá en el feed de Salón de clases con su código y QR para los estudiantes.</p>
+    <h3 style="color:var(--azul);" id="modal-asignaciones-titulo">+ Crear asignación</h3>
+    <p style="color:var(--gris); font-size:13px; margin-top:-8px;" id="modal-asignaciones-subtitulo">Configura la asignación. Al guardarse aparecerá en el feed de Salón de clases con su código y QR para los estudiantes.</p>
     <div id="lista-asignaciones" class="hidden"></div>
     <form id="form-asignacion">
       <label for="a-titulo">Título de la asignación</label>
@@ -176,7 +176,7 @@
       <div class="error-msg" id="asignacion-error"></div>
       <div style="display:flex; gap:8px; justify-content:flex-end">
         <button type="button" class="btn btn-secondary" onclick="cerrarModal('modal-asignaciones')">Cerrar</button>
-        <button type="submit" class="btn btn-primary">Crear asignación y generar código</button>
+        <button type="submit" class="btn btn-primary" id="btn-guardar-asignacion">Crear asignación y generar código</button>
       </div>
     </form>
   </div>

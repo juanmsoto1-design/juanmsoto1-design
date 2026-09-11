@@ -524,7 +524,18 @@ async function eliminarComponente(id, nombre) {
   renderListaComponentes();
 }
 
+let asignacionEditandoId = null;
+
+function pobrarSelectMaterialLectura(materialVinculadoId) {
+  const selMaterial = document.getElementById("a-material-lectura");
+  const materialesDisponibles = (materiales || []).filter(m => !m.asignacion_id || m.id === materialVinculadoId);
+  selMaterial.innerHTML = `<option value="">-- Ninguno --</option>` +
+    materialesDisponibles.map(m => `<option value="${m.id}">${escapeHtml(m.titulo)}</option>`).join("");
+  if (materialVinculadoId) selMaterial.value = materialVinculadoId;
+}
+
 function abrirModalAsignaciones() {
+  asignacionEditandoId = null;
   document.getElementById("asignacion-error").textContent = "";
   document.getElementById("form-asignacion").reset();
   preguntasBuilder = [];
@@ -535,10 +546,65 @@ function abrirModalAsignaciones() {
   renderVocabularioBuilder();
   renderListaAsignaciones();
 
-  const selMaterial = document.getElementById("a-material-lectura");
-  const materialesDisponibles = (materiales || []).filter(m => !m.asignacion_id);
-  selMaterial.innerHTML = `<option value="">-- Ninguno --</option>` +
-    materialesDisponibles.map(m => `<option value="${m.id}">${escapeHtml(m.titulo)}</option>`).join("");
+  document.getElementById("modal-asignaciones-titulo").textContent = "+ Crear asignación";
+  document.getElementById("modal-asignaciones-subtitulo").textContent = "Configura la asignación. Al guardarse aparecerá en el feed de Salón de clases con su código y QR para los estudiantes.";
+  document.getElementById("btn-guardar-asignacion").textContent = "Crear asignación y generar código";
+
+  pobrarSelectMaterialLectura(null);
+
+  document.getElementById("modal-asignaciones").classList.remove("hidden");
+}
+
+async function editarAsignacion(id) {
+  const a = asignaciones.find(x => x.id === id);
+  if (!a) return;
+  asignacionEditandoId = id;
+
+  document.getElementById("asignacion-error").textContent = "";
+  document.getElementById("form-asignacion").reset();
+  preguntasBuilder = [];
+  vocabularioBuilder = [];
+
+  document.getElementById("a-titulo").value = a.titulo || "";
+  document.getElementById("a-tipo").value = a.tipo || "texto_libre";
+  document.getElementById("a-descripcion").value = a.descripcion || "";
+  document.getElementById("a-fecha-asignada").value = a.fecha_asignada || "";
+  document.getElementById("a-fecha-entrega").value = a.fecha_entrega || "";
+  document.getElementById("a-hora-entrega").value = a.hora_entrega ? a.hora_entrega.slice(0, 5) : "";
+  document.getElementById("a-puntos").value = a.puntos != null ? a.puntos : "";
+  onCambioTipoAsignacion();
+
+  if (a.tipo === "cuestionario") {
+    const { data: preguntas } = await window.sb.from("preguntas").select("*").eq("asignacion_id", id).order("orden", { ascending: true });
+    preguntasBuilder = (preguntas || []).map(p => ({
+      tipo: p.tipo,
+      enunciado: p.enunciado || "",
+      puntos: p.puntos || 1,
+      opciones: p.tipo === "opcion_multiple" ? (p.opciones || ["", ""]) : ["", ""],
+      correctaIndex: p.tipo === "opcion_multiple" ? (p.respuesta_correcta || 0) : 0,
+      correctaVF: p.tipo === "verdadero_falso" ? !!p.respuesta_correcta : true,
+      respuestaTexto: p.tipo === "completar" ? (Array.isArray(p.respuesta_correcta) ? p.respuesta_correcta.join(", ") : "") : ""
+    }));
+  }
+
+  if (a.tipo === "vocabulario") {
+    const { data: palabras } = await window.sb.from("vocabulario_palabras").select("*").eq("asignacion_id", id).order("orden", { ascending: true });
+    vocabularioBuilder = (palabras || []).map(p => ({
+      palabra_original: p.palabra_original || "",
+      traduccion_referencia: p.traduccion_referencia || ""
+    }));
+  }
+
+  renderPreguntasBuilder();
+  renderVocabularioBuilder();
+  renderListaAsignaciones();
+
+  const materialVinculado = (materiales || []).find(m => m.asignacion_id === id);
+  pobrarSelectMaterialLectura(materialVinculado ? materialVinculado.id : null);
+
+  document.getElementById("modal-asignaciones-titulo").textContent = "Editar asignación";
+  document.getElementById("modal-asignaciones-subtitulo").textContent = "Modifica los datos de esta asignación. El código de acceso y el enlace para los estudiantes no cambian.";
+  document.getElementById("btn-guardar-asignacion").textContent = "Guardar cambios";
 
   document.getElementById("modal-asignaciones").classList.remove("hidden");
 }
@@ -889,6 +955,7 @@ function renderListaAsignaciones() {
           <button class="btn btn-secondary" style="padding:6px 12px; font-size:12px; font-weight:700;" onclick="toggleEntregas('${a.id}')">
             ${Icon("users")} Entregas (${entregaronCount})
           </button>
+          <button class="btn btn-secondary" style="padding:4px 8px; font-size:11px;" title="Editar asignación" onclick="editarAsignacion('${a.id}')">${Icon("edit")}</button>
           <button class="btn btn-danger" style="padding:4px 8px; font-size:11px;" title="Eliminar asignación" onclick="eliminarAsignacion('${a.id}')">${Icon("x")}</button>
         </div>
       </div>
@@ -1561,91 +1628,182 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     const { data: { user } } = await window.sb.auth.getUser();
-
-    // 1) crear el componente de nota vinculado a esta asignacion
-    const { data: comp, error: errComp } = await window.sb.from("componentes").insert({
-      materia_id: materiaId, nombre: titulo, puntos_max: puntos, orden: componentes.length
-    }).select().single();
-    if (errComp) {
-      errorEl.textContent = "Error creando el componente de nota: " + errComp.message;
-      return;
-    }
-
-    // 2) crear la asignacion con codigo unico, reintentando si hay colision
-    let intentos = 0;
-    let error = null;
     let asignacionCreada = null;
-    while (intentos < 5) {
-      const codigo = generarCodigo();
-      const resp = await window.sb.from("asignaciones").insert({
-        materia_id: materiaId, titulo, descripcion, fecha_asignada, fecha_entrega, hora_entrega,
-        creado_por: user.id, codigo_acceso: codigo, puntos, componente_id: comp.id, tipo: tipoAsignacion,
-        requiere_archivo
-      }).select().single();
-      error = resp.error;
-      if (!error) { asignacionCreada = resp.data; break; }
-      if (!String(error.message).includes("codigo_acceso")) break;
-      intentos++;
-    }
-    if (error) {
-      errorEl.textContent = "Error: " + error.message;
-      await window.sb.from("componentes").delete().eq("id", comp.id);
-      return;
-    }
 
-    // 3) si es cuestionario, guardar las preguntas
-    if (tipoAsignacion === "cuestionario") {
-      const filasPreguntas = preguntasBuilder.map((p, idx) => {
-        let opciones = null;
-        let respuesta_correcta;
-        if (p.tipo === "opcion_multiple") {
-          opciones = p.opciones;
-          respuesta_correcta = p.correctaIndex;
-        } else if (p.tipo === "verdadero_falso") {
-          respuesta_correcta = p.correctaVF;
-        } else {
-          respuesta_correcta = p.respuestaTexto.split(",").map(s => s.trim()).filter(s => s !== "");
+    if (asignacionEditandoId) {
+      // ---------- MODO EDICIÓN: actualizar la asignación existente ----------
+      const asigOriginal = asignaciones.find(x => x.id === asignacionEditandoId);
+      if (!asigOriginal) {
+        errorEl.textContent = "No se encontró la asignación a editar.";
+        return;
+      }
+
+      // 1) actualizar el componente de nota vinculado
+      if (asigOriginal.componente_id) {
+        const { error: errComp } = await window.sb.from("componentes").update({
+          nombre: titulo, puntos_max: puntos
+        }).eq("id", asigOriginal.componente_id);
+        if (errComp) {
+          errorEl.textContent = "Error actualizando el componente de nota: " + errComp.message;
+          return;
         }
-        return {
+      }
+
+      // 2) actualizar la asignación (el código de acceso NO cambia)
+      const { data: asigActualizada, error: errAsig } = await window.sb.from("asignaciones").update({
+        titulo, descripcion, fecha_asignada, fecha_entrega, hora_entrega,
+        puntos, tipo: tipoAsignacion, requiere_archivo
+      }).eq("id", asignacionEditandoId).select().single();
+      if (errAsig) {
+        errorEl.textContent = "Error: " + errAsig.message;
+        return;
+      }
+      asignacionCreada = asigActualizada;
+
+      // 3) reemplazar preguntas (si es cuestionario)
+      if (tipoAsignacion === "cuestionario") {
+        await window.sb.from("preguntas").delete().eq("asignacion_id", asignacionEditandoId);
+        const filasPreguntas = preguntasBuilder.map((p, idx) => {
+          let opciones = null;
+          let respuesta_correcta;
+          if (p.tipo === "opcion_multiple") {
+            opciones = p.opciones;
+            respuesta_correcta = p.correctaIndex;
+          } else if (p.tipo === "verdadero_falso") {
+            respuesta_correcta = p.correctaVF;
+          } else {
+            respuesta_correcta = p.respuestaTexto.split(",").map(s => s.trim()).filter(s => s !== "");
+          }
+          return {
+            asignacion_id: asignacionEditandoId,
+            orden: idx,
+            tipo: p.tipo,
+            enunciado: p.enunciado.trim(),
+            puntos: p.puntos,
+            opciones,
+            respuesta_correcta
+          };
+        });
+        const { error: errPreguntas } = await window.sb.from("preguntas").insert(filasPreguntas);
+        if (errPreguntas) {
+          errorEl.textContent = "Error guardando las preguntas: " + errPreguntas.message;
+          return;
+        }
+      }
+
+      // 3b) reemplazar palabras de vocabulario (si aplica)
+      if (tipoAsignacion === "vocabulario") {
+        await window.sb.from("vocabulario_palabras").delete().eq("asignacion_id", asignacionEditandoId);
+        const filasPalabras = vocabularioBuilder.map((p, idx) => ({
+          asignacion_id: asignacionEditandoId,
+          orden: idx,
+          palabra_original: p.palabra_original.trim(),
+          traduccion_referencia: p.traduccion_referencia.trim() || null
+        }));
+        const { error: errPalabras } = await window.sb.from("vocabulario_palabras").insert(filasPalabras);
+        if (errPalabras) {
+          errorEl.textContent = "Error guardando las palabras: " + errPalabras.message;
+          return;
+        }
+      }
+
+      // 4) actualizar el material de lectura vinculado (desvincular el anterior si cambió)
+      const materialLecturaId = document.getElementById("a-material-lectura").value || null;
+      const materialAnterior = (materiales || []).find(m => m.asignacion_id === asignacionEditandoId);
+      if (materialAnterior && materialAnterior.id !== materialLecturaId) {
+        await window.sb.from("materiales").update({ asignacion_id: null }).eq("id", materialAnterior.id);
+      }
+      if (materialLecturaId) {
+        await window.sb.from("materiales").update({ asignacion_id: asignacionEditandoId }).eq("id", materialLecturaId);
+      }
+
+      asignacionEditandoId = null;
+    } else {
+      // ---------- MODO CREACIÓN: igual que antes ----------
+      // 1) crear el componente de nota vinculado a esta asignacion
+      const { data: comp, error: errComp } = await window.sb.from("componentes").insert({
+        materia_id: materiaId, nombre: titulo, puntos_max: puntos, orden: componentes.length
+      }).select().single();
+      if (errComp) {
+        errorEl.textContent = "Error creando el componente de nota: " + errComp.message;
+        return;
+      }
+
+      // 2) crear la asignacion con codigo unico, reintentando si hay colision
+      let intentos = 0;
+      let error = null;
+      while (intentos < 5) {
+        const codigo = generarCodigo();
+        const resp = await window.sb.from("asignaciones").insert({
+          materia_id: materiaId, titulo, descripcion, fecha_asignada, fecha_entrega, hora_entrega,
+          creado_por: user.id, codigo_acceso: codigo, puntos, componente_id: comp.id, tipo: tipoAsignacion,
+          requiere_archivo
+        }).select().single();
+        error = resp.error;
+        if (!error) { asignacionCreada = resp.data; break; }
+        if (!String(error.message).includes("codigo_acceso")) break;
+        intentos++;
+      }
+      if (error) {
+        errorEl.textContent = "Error: " + error.message;
+        await window.sb.from("componentes").delete().eq("id", comp.id);
+        return;
+      }
+
+      // 3) si es cuestionario, guardar las preguntas
+      if (tipoAsignacion === "cuestionario") {
+        const filasPreguntas = preguntasBuilder.map((p, idx) => {
+          let opciones = null;
+          let respuesta_correcta;
+          if (p.tipo === "opcion_multiple") {
+            opciones = p.opciones;
+            respuesta_correcta = p.correctaIndex;
+          } else if (p.tipo === "verdadero_falso") {
+            respuesta_correcta = p.correctaVF;
+          } else {
+            respuesta_correcta = p.respuestaTexto.split(",").map(s => s.trim()).filter(s => s !== "");
+          }
+          return {
+            asignacion_id: asignacionCreada.id,
+            orden: idx,
+            tipo: p.tipo,
+            enunciado: p.enunciado.trim(),
+            puntos: p.puntos,
+            opciones,
+            respuesta_correcta
+          };
+        });
+        const { error: errPreguntas } = await window.sb.from("preguntas").insert(filasPreguntas);
+        if (errPreguntas) {
+          errorEl.textContent = "Error guardando las preguntas: " + errPreguntas.message;
+          await window.sb.from("asignaciones").delete().eq("id", asignacionCreada.id);
+          await window.sb.from("componentes").delete().eq("id", comp.id);
+          return;
+        }
+      }
+
+      // 3b) si es vocabulario, guardar las palabras/verbos
+      if (tipoAsignacion === "vocabulario") {
+        const filasPalabras = vocabularioBuilder.map((p, idx) => ({
           asignacion_id: asignacionCreada.id,
           orden: idx,
-          tipo: p.tipo,
-          enunciado: p.enunciado.trim(),
-          puntos: p.puntos,
-          opciones,
-          respuesta_correcta
-        };
-      });
-      const { error: errPreguntas } = await window.sb.from("preguntas").insert(filasPreguntas);
-      if (errPreguntas) {
-        errorEl.textContent = "Error guardando las preguntas: " + errPreguntas.message;
-        await window.sb.from("asignaciones").delete().eq("id", asignacionCreada.id);
-        await window.sb.from("componentes").delete().eq("id", comp.id);
-        return;
+          palabra_original: p.palabra_original.trim(),
+          traduccion_referencia: p.traduccion_referencia.trim() || null
+        }));
+        const { error: errPalabras } = await window.sb.from("vocabulario_palabras").insert(filasPalabras);
+        if (errPalabras) {
+          errorEl.textContent = "Error guardando las palabras: " + errPalabras.message;
+          await window.sb.from("asignaciones").delete().eq("id", asignacionCreada.id);
+          await window.sb.from("componentes").delete().eq("id", comp.id);
+          return;
+        }
       }
-    }
 
-    // 3b) si es vocabulario, guardar las palabras/verbos
-    if (tipoAsignacion === "vocabulario") {
-      const filasPalabras = vocabularioBuilder.map((p, idx) => ({
-        asignacion_id: asignacionCreada.id,
-        orden: idx,
-        palabra_original: p.palabra_original.trim(),
-        traduccion_referencia: p.traduccion_referencia.trim() || null
-      }));
-      const { error: errPalabras } = await window.sb.from("vocabulario_palabras").insert(filasPalabras);
-      if (errPalabras) {
-        errorEl.textContent = "Error guardando las palabras: " + errPalabras.message;
-        await window.sb.from("asignaciones").delete().eq("id", asignacionCreada.id);
-        await window.sb.from("componentes").delete().eq("id", comp.id);
-        return;
+      // 4) si se seleccionó un material de lectura, vincularlo a esta asignación
+      const materialLecturaId = document.getElementById("a-material-lectura").value || null;
+      if (materialLecturaId) {
+        await window.sb.from("materiales").update({ asignacion_id: asignacionCreada.id }).eq("id", materialLecturaId);
       }
-    }
-
-    // 4) si se seleccionó un material de lectura, vincularlo a esta asignación
-    const materialLecturaId = document.getElementById("a-material-lectura").value || null;
-    if (materialLecturaId) {
-      await window.sb.from("materiales").update({ asignacion_id: asignacionCreada.id }).eq("id", materialLecturaId);
     }
 
     document.getElementById("form-asignacion").reset();
