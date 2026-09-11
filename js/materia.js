@@ -75,7 +75,7 @@ async function cargarTodo() {
     return;
   }
   materia = m;
-  document.getElementById("materia-titulo").textContent = "📚 " + materia.nombre;
+  document.getElementById("materia-titulo").innerHTML = Icon("book") + " " + escapeHtml(materia.nombre);
   document.getElementById("materia-periodo").textContent = materia.periodo || "";
 
   const [{ data: comps }, { data: ests }, { data: califs }, { data: esc }, { data: asigs }, { data: mats }] = await Promise.all([
@@ -225,13 +225,13 @@ function renderAlertaRiesgo() {
 
   if (enRiesgo.length === 0) {
     cont.classList.remove("hidden");
-    cont.innerHTML = `<strong style="color:#1e7a34;">✓ Sin alertas.</strong> Ningún estudiante está en riesgo de reprobar en este momento.`;
+    cont.innerHTML = `<strong style="color:#1e7a34;">${Icon("check")} Sin alertas.</strong> Ningún estudiante está en riesgo de reprobar en este momento.`;
     return;
   }
 
   cont.classList.remove("hidden");
   cont.innerHTML = `
-    <strong style="color:#b3261e;">⚠ Monitoreo privado: ${enRiesgo.length} estudiante(s) en riesgo</strong>
+    <strong style="color:#b3261e;">${Icon("alert-triangle")} Monitoreo privado: ${enRiesgo.length} estudiante(s) en riesgo</strong>
     <p style="color:#6b7280; font-size:13px; margin:6px 0 10px;">Solo tú ves este panel. Revisa antes de cerrar el periodo.</p>
     <div style="display:flex; flex-direction:column; gap:4px;">
       ${enRiesgo.map(x => `
@@ -365,8 +365,8 @@ async function onCambioNota(e) {
     }, { onConflict: "estudiante_id,componente_id" }));
   }
 
-  indicador.textContent = error ? ("Error al guardar: " + error.message) : "Guardado ✓";
-  if (!error) setTimeout(() => { if (indicador.textContent === "Guardado ✓") indicador.textContent = ""; }, 1500);
+  indicador.textContent = error ? ("Error al guardar: " + error.message) : "Guardado";
+  if (!error) setTimeout(() => { if (indicador.textContent === "Guardado") indicador.textContent = ""; }, 1500);
 }
 
 async function eliminarEstudiante(id, nombre) {
@@ -494,7 +494,7 @@ function renderListaComponentes() {
       <input type="text" value="${escapeHtml(c.nombre)}" data-id="${c.id}" class="comp-nombre" style="margin:0; flex:2;" />
       <input type="number" step="0.01" value="${c.puntos_max}" data-id="${c.id}" class="comp-puntos" style="margin:0; width:70px;" />
       <button class="btn btn-secondary" style="padding:4px 8px; font-size:12px;" onclick="guardarComponente('${c.id}')">Guardar</button>
-      <button class="btn btn-danger" style="padding:4px 8px; font-size:12px;" onclick="eliminarComponente('${c.id}', '${escapeHtml(c.nombre).replace(/'/g, "\\'")}')">✕</button>
+      <button class="btn btn-danger" style="padding:4px 8px; font-size:12px;" onclick="eliminarComponente('${c.id}', '${escapeHtml(c.nombre).replace(/'/g, "\\'")}')">${Icon("x")}</button>
     </div>
   `).join("");
 }
@@ -563,7 +563,7 @@ function renderVocabularioBuilder() {
         oninput="vocabularioBuilder[${idx}].palabra_original = this.value" />
       <input type="text" placeholder="Traducción de referencia" value="${escapeHtml(p.traduccion_referencia)}" style="margin:0; flex:1;"
         oninput="vocabularioBuilder[${idx}].traduccion_referencia = this.value" />
-      <button type="button" class="btn btn-danger" style="padding:4px 8px; font-size:12px;" onclick="eliminarPalabraVocabulario(${idx})">✕</button>
+      <button type="button" class="btn btn-danger" style="padding:4px 8px; font-size:12px;" onclick="eliminarPalabraVocabulario(${idx})">${Icon("x")}</button>
     </div>
   `).join("");
 }
@@ -584,15 +584,15 @@ function onCambioTipoAsignacion() {
 
 function etiquetaTipoAsignacion(tipo) {
   const mapa = {
-    texto_libre: { icono: "📝", texto: "Texto libre" },
-    cuestionario: { icono: "🧠", texto: "Cuestionario" },
-    ensayo: { icono: "📄", texto: "Ensayo" },
-    reporte_lectura: { icono: "📖", texto: "Reporte de lectura" },
-    exegesis: { icono: "📜", texto: "Exégesis" },
-    presentacion: { icono: "🎤", texto: "Presentación PPT" },
-    vocabulario: { icono: "🔤", texto: "Vocabulario/Verbos" }
+    texto_libre: { icono: "pencil-note", texto: "Texto libre" },
+    cuestionario: { icono: "brain", texto: "Cuestionario" },
+    ensayo: { icono: "file-text", texto: "Ensayo" },
+    reporte_lectura: { icono: "book-open", texto: "Reporte de lectura" },
+    exegesis: { icono: "file-text", texto: "Exégesis" },
+    presentacion: { icono: "mic", texto: "Presentación PPT" },
+    vocabulario: { icono: "type", texto: "Vocabulario/Verbos" }
   };
-  return mapa[tipo] || { icono: "📌", texto: tipo };
+  return mapa[tipo] || { icono: "pin", texto: tipo };
 }
 
 function agregarPreguntaBuilder() {
@@ -664,7 +664,7 @@ function renderPreguntasBuilder() {
         <input type="number" step="0.01" min="0" value="${p.puntos}" title="Puntos de esta pregunta"
           style="width:80px; margin:0;"
           oninput="preguntasBuilder[${idx}].puntos = parseFloat(this.value) || 0; actualizarTotalPreguntasBuilder();" />
-        <button type="button" class="btn btn-danger" style="padding:4px 8px; font-size:12px;" onclick="eliminarPreguntaBuilder(${idx})">✕</button>
+        <button type="button" class="btn btn-danger" style="padding:4px 8px; font-size:12px;" onclick="eliminarPreguntaBuilder(${idx})">${Icon("x")}</button>
       </div>
       <input type="text" placeholder="Escribe la pregunta" value="${escapeHtml(p.enunciado)}"
         style="margin-bottom:10px;"
@@ -678,7 +678,7 @@ function renderPreguntasBuilder() {
                 onchange="preguntasBuilder[${idx}].correctaIndex = ${oIdx}" title="Marcar como respuesta correcta" />
               <input type="text" placeholder="Opción ${oIdx + 1}" value="${escapeHtml(op)}" style="margin:0; flex:1;"
                 oninput="preguntasBuilder[${idx}].opciones[${oIdx}] = this.value" />
-              <button type="button" class="btn btn-secondary" style="padding:2px 8px; font-size:11px;" onclick="eliminarOpcionBuilder(${idx}, ${oIdx})">✕</button>
+              <button type="button" class="btn btn-secondary" style="padding:2px 8px; font-size:11px;" onclick="eliminarOpcionBuilder(${idx}, ${oIdx})">${Icon("x")}</button>
             </div>
           `).join("")}
         </div>
@@ -758,12 +758,12 @@ function onCambioTipoMaterial() {
 }
 
 function iconoMaterial(m) {
-  if (m.tipo === "enlace") return "🔗";
+  if (m.tipo === "enlace") return Icon("link");
   const nombre = (m.archivo_nombre || "").toLowerCase();
-  if (nombre.endsWith(".pdf")) return "📕";
-  if (nombre.endsWith(".ppt") || nombre.endsWith(".pptx")) return "📊";
-  if (nombre.endsWith(".doc") || nombre.endsWith(".docx")) return "📄";
-  return "📎";
+  if (nombre.endsWith(".pdf")) return Icon("file-text");
+  if (nombre.endsWith(".ppt") || nombre.endsWith(".pptx")) return Icon("chart");
+  if (nombre.endsWith(".doc") || nombre.endsWith(".docx")) return Icon("file-text");
+  return Icon("paperclip");
 }
 
 function renderListaMateriales() {
@@ -777,7 +777,7 @@ function renderListaMateriales() {
 
   cont.innerHTML = materiales.map(m => {
     const enlace = m.tipo === "enlace" ? m.enlace_url : m.archivo_url;
-    const textoAccion = m.tipo === "enlace" ? "Abrir enlace ↗" : "Descargar ↓";
+    const textoAccion = m.tipo === "enlace" ? "Abrir enlace" : "Descargar";
     return `
       <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 12px; border:1px solid var(--borde); border-radius:8px;">
         <div style="display:flex; align-items:center; gap:10px; min-width:0;">
@@ -785,12 +785,12 @@ function renderListaMateriales() {
           <div style="min-width:0;">
             <div style="font-weight:700; color:var(--azul); font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(m.titulo)}</div>
             ${m.descripcion ? `<div style="font-size:12px; color:var(--gris);">${escapeHtml(m.descripcion)}</div>` : ""}
-            ${m.asignacion_id ? `<div style="font-size:11px; color:var(--cyan-dark); font-weight:600;">📌 ${escapeHtml((asignaciones.find(a => a.id === m.asignacion_id) || {}).titulo || "Asignación")}</div>` : ""}
+            ${m.asignacion_id ? `<div style="font-size:11px; color:var(--cyan-dark); font-weight:600;">${Icon("pin")} ${escapeHtml((asignaciones.find(a => a.id === m.asignacion_id) || {}).titulo || "Asignación")}</div>` : ""}
           </div>
         </div>
         <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
           <a class="btn btn-secondary" style="padding:6px 12px; font-size:12px;" href="${enlace}" target="_blank" rel="noopener">${textoAccion}</a>
-          <button type="button" class="btn btn-danger" style="padding:6px 10px; font-size:12px;" onclick="eliminarMaterial('${m.id}')">🗑</button>
+          <button type="button" class="btn btn-danger" style="padding:6px 10px; font-size:12px;" onclick="eliminarMaterial('${m.id}')">${Icon("trash")}</button>
         </div>
       </div>
     `;
@@ -814,7 +814,7 @@ function renderListaAsignaciones() {
   if (!asignaciones || asignaciones.length === 0) {
     cont.innerHTML = `
       <div class="card empty-state" style="padding:40px 20px; text-align:center;">
-        <div style="font-size:42px; margin-bottom:10px;">📚</div>
+        <div style="font-size:42px; margin-bottom:10px;">${Icon("book", 42)}</div>
         <h3 style="color:var(--azul); margin:0 0 6px;">No hay asignaciones aún</h3>
         <p style="color:var(--gris); margin:0 0 16px;">Comienza creando la primera asignación de esta materia para tus estudiantes.</p>
         <button class="btn btn-primary" onclick="abrirModalAsignaciones()">+ Crear asignación</button>
@@ -843,7 +843,7 @@ function renderListaAsignaciones() {
 
     let resumenPill = `${entregaronCount} de ${totalEsts} estudiantes entregaron · ${calificadasCount} calificadas`;
     if (totalEsts > 0 && entregaronCount === totalEsts) {
-      resumenPill = `✓ Todos entregaron (${totalEsts}) · ${calificadasCount} calificadas`;
+      resumenPill = `${Icon("check")} Todos entregaron (${totalEsts}) · ${calificadasCount} calificadas`;
     }
 
     return `
@@ -852,27 +852,27 @@ function renderListaAsignaciones() {
         <div style="flex:1;">
           <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px; flex-wrap:wrap;">
             <span class="badge" style="background:var(--azul-claro); color:var(--cyan-dark); font-size:12px; font-weight:700;">
-              ${et.icono} ${et.texto}
+              ${Icon(et.icono)} ${et.texto}
             </span>
             <span style="font-size:12px; color:var(--gris); font-weight:700;">Vale ${a.puntos} pts</span>
-            ${vencida ? `<span class="status-badge status-vencida">⚠️ Vencida</span>` : ""}
+            ${vencida ? `<span class="status-badge status-vencida">${Icon("alert-triangle")} Vencida</span>` : ""}
           </div>
           <h3 class="asig-title" style="cursor:pointer;" onclick="toggleEntregas('${a.id}')">${escapeHtml(a.titulo)}</h3>
         </div>
         <div style="display:flex; align-items:center; gap:8px;">
           <button class="btn btn-secondary" style="padding:6px 12px; font-size:12px; font-weight:700;" onclick="toggleEntregas('${a.id}')">
-            👥 Entregas (${entregaronCount})
+            ${Icon("users")} Entregas (${entregaronCount})
           </button>
-          <button class="btn btn-danger" style="padding:4px 8px; font-size:11px;" title="Eliminar asignación" onclick="eliminarAsignacion('${a.id}')">✕</button>
+          <button class="btn btn-danger" style="padding:4px 8px; font-size:11px;" title="Eliminar asignación" onclick="eliminarAsignacion('${a.id}')">${Icon("x")}</button>
         </div>
       </div>
 
       ${a.descripcion ? `<p class="asig-desc">${escapeHtml(a.descripcion)}</p>` : ""}
 
       <div class="asig-meta" style="border-top:1px solid #f1f3f4; padding-top:10px; margin-top:4px;">
-        <span>📅 Cierre: <strong>${formatoFecha(a.fecha_entrega)}${a.hora_entrega ? " " + a.hora_entrega.slice(0, 5) : ""}</strong></span>
+        <span>${Icon("calendar")} Cierre: <strong>${formatoFecha(a.fecha_entrega)}${a.hora_entrega ? " " + a.hora_entrega.slice(0, 5) : ""}</strong></span>
         <span style="background:var(--azul-claro); color:var(--azul); padding:3px 10px; border-radius:999px; font-weight:700; font-size:12px;">
-          📊 ${resumenPill}
+          ${Icon("chart")} ${resumenPill}
         </span>
       </div>
 
@@ -970,7 +970,7 @@ async function toggleEntregas(asignacionId) {
     <div style="margin-top:10px;">
       <strong style="font-size:12px; color:#b3261e;">No han entregado (${noEntregaron.length}):</strong>
       ${noEntregaron.length === 0
-        ? `<p style="font-size:12px; color:#1e7a34;">Todos entregaron ✓</p>`
+        ? `<p style="font-size:12px; color:#1e7a34;">${Icon("check")} Todos entregaron</p>`
         : `<ul style="font-size:12px; color:#b3261e; margin:6px 0 0 18px; padding:0;">
              ${noEntregaron.map(e => `<li>${escapeHtml(e.nombre)}</li>`).join("")}
            </ul>`}
@@ -1047,7 +1047,7 @@ async function toggleEntregasVocabulario(asignacionId, asignacion) {
     <div style="margin-top:10px;">
       <strong style="font-size:12px; color:#b3261e;">No han entregado (${noEntregaron.length}):</strong>
       ${noEntregaron.length === 0
-        ? `<p style="font-size:12px; color:#1e7a34;">Todos entregaron ✓</p>`
+        ? `<p style="font-size:12px; color:#1e7a34;">${Icon("check")} Todos entregaron</p>`
         : `<ul style="font-size:12px; color:#b3261e; margin:6px 0 0 18px; padding:0;">
              ${noEntregaron.map(e => `<li>${escapeHtml(e.nombre)}</li>`).join("")}
            </ul>`}
@@ -1184,7 +1184,7 @@ async function abrirReporteAsignaciones() {
 
       <div style="display:flex; gap:14px; flex-wrap:wrap; margin-top:10px;">
         <div style="flex:1; min-width:220px;">
-          <div style="font-size:12px; font-weight:700; color:#1e7a34; margin-bottom:4px;">✅ Entregaron (${f.entregaron.length})</div>
+          <div style="font-size:12px; font-weight:700; color:#1e7a34; margin-bottom:4px;">${Icon("check-circle")} Entregaron (${f.entregaron.length})</div>
           ${f.entregaron.length === 0
             ? `<p style="font-size:12px; color:#6b7280;">Nadie ha entregado todavía.</p>`
             : `<ul style="font-size:12px; margin:0; padding-left:18px; max-height:160px; overflow-y:auto;">
@@ -1199,9 +1199,9 @@ async function abrirReporteAsignaciones() {
                </ul>`}
         </div>
         <div style="flex:1; min-width:220px;">
-          <div style="font-size:12px; font-weight:700; color:#b3261e; margin-bottom:4px;">❌ No entregaron (${f.noEntregaron.length})</div>
+          <div style="font-size:12px; font-weight:700; color:#b3261e; margin-bottom:4px;">${Icon("x-circle")} No entregaron (${f.noEntregaron.length})</div>
           ${f.noEntregaron.length === 0
-            ? `<p style="font-size:12px; color:#1e7a34;">Todos entregaron ✓</p>`
+            ? `<p style="font-size:12px; color:#1e7a34;">${Icon("check")} Todos entregaron</p>`
             : `<ul style="font-size:12px; margin:0; padding-left:18px; max-height:160px; overflow-y:auto; color:#b3261e;">
                 ${f.noEntregaron.map(est => `<li>${escapeHtml(est.nombre)}</li>`).join("")}
                </ul>`}

@@ -10,7 +10,7 @@
 <body>
 <div class="login-wrapper">
   <div class="card login-card" style="max-width:440px;">
-    <h1 style="font-size:20px;">📌 Entregar asignación</h1>
+    <h1 style="font-size:20px;"><span data-icon="pin" data-icon-size="18"></span> Entregar asignación</h1>
     <p class="subtitle">UNAD</p>
 
     <div id="paso-codigo">
@@ -37,14 +37,14 @@
 
         <div class="error-msg" id="error-entrega"></div>
         <button class="btn btn-primary" style="width:100%" id="btn-enviar" onclick="entregar()">Enviar asignación</button>
-        <button class="btn btn-secondary" style="width:100%; margin-top:8px;" onclick="verPosiciones()">🏆 Ver tabla de posiciones</button>
+        <button class="btn btn-secondary" style="width:100%; margin-top:8px;" onclick="verPosiciones()"><span data-icon="trophy" data-icon-size="15"></span> Ver tabla de posiciones</button>
       </div>
 
       <div id="bloque-cuestionario-estudiante" class="hidden">
         <div id="preguntas-cuestionario-cont" style="display:flex; flex-direction:column; gap:14px; margin-bottom:14px;"></div>
         <div class="error-msg" id="error-cuestionario"></div>
         <button class="btn btn-primary" style="width:100%" id="btn-enviar-cuestionario" onclick="entregarCuestionario()">Enviar cuestionario</button>
-        <button class="btn btn-secondary" style="width:100%; margin-top:8px;" onclick="verPosiciones()">🏆 Ver tabla de posiciones</button>
+        <button class="btn btn-secondary" style="width:100%; margin-top:8px;" onclick="verPosiciones()"><span data-icon="trophy" data-icon-size="15"></span> Ver tabla de posiciones</button>
       </div>
 
       <div id="bloque-archivo-estudiante" class="hidden">
@@ -53,7 +53,7 @@
         <input id="in-archivo" type="file" accept=".pdf,.doc,.docx,.ppt,.pptx" />
         <div class="error-msg" id="error-archivo"></div>
         <button class="btn btn-primary" style="width:100%" id="btn-enviar-archivo" onclick="subirArchivoEntrega()">Enviar archivo</button>
-        <button class="btn btn-secondary" style="width:100%; margin-top:8px;" onclick="verPosiciones()">🏆 Ver tabla de posiciones</button>
+        <button class="btn btn-secondary" style="width:100%; margin-top:8px;" onclick="verPosiciones()"><span data-icon="trophy" data-icon-size="15"></span> Ver tabla de posiciones</button>
       </div>
 
       <div id="bloque-vocabulario-estudiante" class="hidden">
@@ -61,32 +61,33 @@
         <div id="palabras-vocabulario-cont" style="display:flex; flex-direction:column; gap:10px; margin-bottom:14px;"></div>
         <div class="error-msg" id="error-vocabulario"></div>
         <button class="btn btn-primary" style="width:100%" id="btn-enviar-vocabulario" onclick="entregarVocabulario()">Enviar traducciones</button>
-        <button class="btn btn-secondary" style="width:100%; margin-top:8px;" onclick="verPosiciones()">🏆 Ver tabla de posiciones</button>
+        <button class="btn btn-secondary" style="width:100%; margin-top:8px;" onclick="verPosiciones()"><span data-icon="trophy" data-icon-size="15"></span> Ver tabla de posiciones</button>
       </div>
 
-      <button class="btn btn-secondary hidden" id="btn-volver-clase" style="width:100%; margin-top:8px;" onclick="volverClase()">← Volver al salón de clases</button>
-      <button class="btn btn-secondary" style="width:100%; margin-top:8px;" onclick="reiniciar()">← Usar otro código</button>
+      <button class="btn btn-secondary hidden" id="btn-volver-clase" style="width:100%; margin-top:8px;" onclick="volverClase()"><span data-icon="arrow-left" data-icon-size="15"></span> Volver al salón de clases</button>
+      <button class="btn btn-secondary" style="width:100%; margin-top:8px;" onclick="reiniciar()"><span data-icon="arrow-left" data-icon-size="15"></span> Usar otro código</button>
     </div>
 
     <div id="paso-exito" class="hidden" style="text-align:center;">
-      <div style="font-size:40px;">✅</div>
+      <div style="color:var(--verde);"><span data-icon="check-circle" data-icon-size="40"></span></div>
       <h3 style="color:#1e7a34;">¡Entrega registrada!</h3>
       <p style="color:#6b7280; font-size:14px;">Tu profesor la revisará y asignará tu puntuación.</p>
-      <button class="btn btn-primary" style="width:100%;" onclick="verPosiciones()">🏆 Ver tabla de posiciones</button>
-      <button class="btn btn-secondary hidden" id="btn-volver-clase-exito" style="width:100%; margin-top:8px;" onclick="volverClase()">← Volver al salón de clases</button>
+      <button class="btn btn-primary" style="width:100%;" onclick="verPosiciones()"><span data-icon="trophy" data-icon-size="15"></span> Ver tabla de posiciones</button>
+      <button class="btn btn-secondary hidden" id="btn-volver-clase-exito" style="width:100%; margin-top:8px;" onclick="volverClase()"><span data-icon="arrow-left" data-icon-size="15"></span> Volver al salón de clases</button>
       <button class="btn btn-secondary" style="width:100%; margin-top:8px;" onclick="reiniciar()">Entregar otra asignación</button>
     </div>
 
     <div id="paso-posiciones" class="hidden">
-      <h3 style="color:var(--azul); margin-bottom:4px;">🏆 Tabla de posiciones</h3>
+      <h3 style="color:var(--azul); margin-bottom:4px;"><span data-icon="trophy" data-icon-size="16"></span> Tabla de posiciones</h3>
       <p style="color:var(--gris); font-size:13px; margin-top:0;" id="pos-subtitulo"></p>
       <div id="lista-posiciones"></div>
-      <button class="btn btn-secondary" style="width:100%; margin-top:14px;" onclick="verPosiciones()">↻ Actualizar</button>
-      <button class="btn btn-secondary" style="width:100%; margin-top:8px;" onclick="reiniciar()">← Usar otro código</button>
+      <button class="btn btn-secondary" style="width:100%; margin-top:14px;" onclick="verPosiciones()"><span data-icon="refresh" data-icon-size="15"></span> Actualizar</button>
+      <button class="btn btn-secondary" style="width:100%; margin-top:8px;" onclick="reiniciar()"><span data-icon="arrow-left" data-icon-size="15"></span> Usar otro código</button>
     </div>
   </div>
 </div>
 
+<script src="js/icons.js"></script>
 <script src="js/config.js"></script>
 <script>
 window.sb = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
@@ -263,7 +264,7 @@ function renderPreguntasCuestionario(respuestasPrevias, soloLectura) {
     const previa = mapaPrevias[p.id];
     const marcarResultado = soloLectura && previa
       ? `<div style="font-size:12px; font-weight:700; margin-top:6px; color:${previa.es_correcta ? "#1e7a34" : "#b3261e"};">
-           ${previa.es_correcta ? "✓ Correcta" : "✗ Incorrecta"} · ${previa.puntos_obtenidos || 0} / ${p.puntos} pts
+           ${previa.es_correcta ? Icon("check") + " Correcta" : Icon("x") + " Incorrecta"} · ${previa.puntos_obtenidos || 0} / ${p.puntos} pts
          </div>`
       : "";
 
@@ -411,7 +412,7 @@ async function onCambioEstudiante() {
     if (yaCalificada) {
       estadoEl.style.background = "#e3f6e8";
       estadoEl.style.color = "#1e7a34";
-      estadoEl.innerHTML = `✓ Ya entregaste (intento ${intentosUsados}/2). <strong>Tu puntuación: ${previa.puntuacion} pts</strong>`;
+      estadoEl.innerHTML = `${Icon("check")} Ya entregaste (intento ${intentosUsados}/2). <strong>Tu puntuación: ${previa.puntuacion} pts</strong>`;
     } else {
       estadoEl.style.background = "#eaf4fc";
       estadoEl.style.color = "#16305c";
@@ -451,7 +452,7 @@ async function onCambioEstudiante() {
     if (yaCalificada) {
       estadoEl.style.background = "#e3f6e8";
       estadoEl.style.color = "#1e7a34";
-      estadoEl.innerHTML = `✓ Ya entregaste (intento ${intentosUsados}/2). <strong>Tu puntuación: ${previa.puntuacion} pts</strong>`;
+      estadoEl.innerHTML = `${Icon("check")} Ya entregaste (intento ${intentosUsados}/2). <strong>Tu puntuación: ${previa.puntuacion} pts</strong>`;
     } else {
       estadoEl.style.background = "#eaf4fc";
       estadoEl.style.color = "#16305c";
@@ -492,7 +493,7 @@ async function onCambioEstudiante() {
     estadoEl.classList.remove("hidden");
     estadoEl.style.background = "#e3f6e8";
     estadoEl.style.color = "#1e7a34";
-    estadoEl.innerHTML = `✓ Ya entregaste (intento ${intentosUsados}/2). <strong>Tu puntuación: ${previa.puntuacion} pts</strong>`;
+    estadoEl.innerHTML = `${Icon("check")} Ya entregaste (intento ${intentosUsados}/2). <strong>Tu puntuación: ${previa.puntuacion} pts</strong>`;
 
     if (intentosUsados >= 2) {
       btnEnviarCuestionario.disabled = true;
@@ -522,7 +523,7 @@ async function onCambioEstudiante() {
   if (yaCalificada) {
     estadoEl.style.background = "#e3f6e8";
     estadoEl.style.color = "#1e7a34";
-    estadoEl.innerHTML = `✓ Ya entregaste (intento ${intentosUsados}/2). <strong>Tu puntuación: ${previa.puntuacion} pts</strong>`;
+    estadoEl.innerHTML = `${Icon("check")} Ya entregaste (intento ${intentosUsados}/2). <strong>Tu puntuación: ${previa.puntuacion} pts</strong>`;
   } else {
     estadoEl.style.background = "#eaf4fc";
     estadoEl.style.color = "#16305c";
@@ -656,18 +657,19 @@ async function verPosiciones() {
     return;
   }
 
-  const medallas = ["🥇", "🥈", "🥉"];
+  const coloresMedalla = ["#d4af37", "#a8a8a8", "#b5651d"];
   sub.textContent = `${data.length} entrega(s) calificada(s) — ordenadas de mayor a menor puntuación.`;
 
   cont.innerHTML = `
     <div style="display:flex; flex-direction:column; gap:6px; max-height:50vh; overflow-y:auto;">
       ${data.map((row, i) => {
         const esYo = estudianteIdActual && row.estudiante_id === estudianteIdActual;
+        const marcador = i < 3 ? `<span style="color:${coloresMedalla[i]};">${Icon("medal")}</span>` : (i + 1) + ".";
         return `
           <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 12px; border-radius:8px;
             background:${esYo ? "#eaf4fc" : "#f5f7fa"}; border:${esYo ? "2px solid #00aeef" : "1px solid #dfe3e8"};">
             <span style="font-weight:700; color:#16305c;">
-              ${i < 3 ? medallas[i] : (i + 1) + "."} ${escapeHtml(row.nombre)} ${esYo ? " (tú)" : ""}
+              ${marcador} ${escapeHtml(row.nombre)} ${esYo ? " (tú)" : ""}
             </span>
             <span style="font-weight:800; color:#00aeef;">${row.puntuacion} pts</span>
           </div>

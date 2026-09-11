@@ -99,7 +99,7 @@ async function init() {
     const materiasDelProfesor = porProfesor[profesor];
     return `
       <div class="card">
-        <h3 style="margin-top:0; color:#16305c;">👤 ${escapeHtml(profesor)}</h3>
+        <h3 style="margin-top:0; color:#16305c;">${Icon("user")} ${escapeHtml(profesor)}</h3>
 
         <div class="table-scroll" style="max-height:none; margin-bottom:18px;">
           <table>
@@ -133,7 +133,7 @@ async function init() {
         ${materiasDelProfesor.map(r => `
           <div style="margin-bottom:20px; border-top:1px solid #dfe3e8; padding-top:12px;">
             <h4 style="margin:0 0 8px; color:#16305c; font-size:14px;">
-              📋 Detalle · ${escapeHtml(r.materia.nombre)}
+              ${Icon("clipboard")} Detalle · ${escapeHtml(r.materia.nombre)}
               <span style="font-weight:400; color:#6b7280; font-size:12px;">(${escapeHtml(r.materia.periodo || "sin periodo")})</span>
             </h4>
             ${r.detalleEstudiantes.length === 0

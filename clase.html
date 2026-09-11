@@ -153,7 +153,7 @@
 
 <div class="topbar">
   <div style="display:flex; align-items:center; gap:10px;">
-    <span style="font-size:20px;">🏫</span>
+    <span style="font-size:20px;" id="topbar-icon"></span>
     <h1 id="topbar-title">Salón de Clases</h1>
   </div>
   <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
@@ -161,8 +161,8 @@
       <span style="font-weight:700; color:var(--azul);" id="badge-nombre-estudiante"></span>
       <button type="button" class="btn" style="padding:2px 8px; font-size:11px; margin:0;" onclick="cambiarEstudiante()">Cambiar</button>
     </div>
-    <button type="button" class="btn btn-secondary" onclick="abrirModalPosiciones()">🏆 Tabla de posiciones</button>
-    <button type="button" class="btn btn-secondary" onclick="cargarFeed()">↻ Actualizar</button>
+    <button type="button" class="btn btn-secondary" onclick="abrirModalPosiciones()">Tabla de posiciones</button>
+    <button type="button" class="btn btn-secondary" onclick="cargarFeed()">Actualizar</button>
   </div>
 </div>
 
@@ -171,7 +171,7 @@
   <!-- Paso 1: Pide código de materia si no vino en URL -->
   <div id="paso-pedir-codigo" class="hidden">
     <div class="card" style="max-width:440px; margin:40px auto; text-align:center;">
-      <div style="font-size:42px; margin-bottom:8px;">🏫</div>
+      <div style="font-size:42px; margin-bottom:8px;" id="step1-icon"></div>
       <h2 style="color:var(--azul); margin-top:0;">Entrar al Salón de Clases</h2>
       <p style="color:var(--gris); font-size:14px;">Escribe el código de registro de la materia que te proporcionó tu profesor:</p>
       <input type="text" id="in-codigo-materia" placeholder="Ej: GR3-2026" style="text-align:center; font-weight:700; font-size:18px; letter-spacing:2px; text-transform:uppercase;" />
@@ -183,7 +183,7 @@
   <!-- Paso 2: Pide seleccionar el estudiante -->
   <div id="paso-elegir-estudiante" class="hidden">
     <div class="card" style="max-width:460px; margin:40px auto; text-align:center;">
-      <div style="font-size:42px; margin-bottom:8px;">👤</div>
+      <div style="font-size:42px; margin-bottom:8px;" id="step2-icon"></div>
       <h2 style="color:var(--azul); margin-top:0;" id="sel-materia-titulo">Bienvenido a la clase</h2>
       <p style="color:var(--gris); font-size:14px;">Selecciona tu nombre en la lista de la clase para ver todas tus asignaciones y calificaciones:</p>
       
@@ -196,7 +196,7 @@
       </div>
 
       <div class="error-msg" id="error-estudiante"></div>
-      <button class="btn btn-primary" style="width:100%;" onclick="confirmarEstudiante()">Entrar a mis asignaciones →</button>
+      <button class="btn btn-primary" style="width:100%;" onclick="confirmarEstudiante()">Entrar a mis asignaciones</button>
     </div>
   </div>
 
@@ -236,7 +236,7 @@
 
     <!-- Materiales de la clase -->
     <div class="card" id="tarjeta-materiales" style="margin-bottom:20px; display:none;">
-      <h2 style="color:var(--azul); margin:0 0 4px; font-size:16px;">📎 Materiales de la clase</h2>
+      <h2 style="color:var(--azul); margin:0 0 4px; font-size:16px;">Materiales de la clase</h2>
       <p style="color:var(--gris); margin:0 0 12px; font-size:13px;">Libros, presentaciones, documentos y enlaces que compartió tu profesor.</p>
       <div id="materiales-lista" style="display:flex; flex-direction:column; gap:8px;"></div>
     </div>
@@ -256,8 +256,8 @@
 <div id="modal-posiciones" class="modal-backdrop hidden">
   <div class="modal" style="max-width:500px;">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-      <h3 style="margin:0; color:var(--azul);">🏆 Tabla de Posiciones</h3>
-      <button type="button" class="btn btn-secondary" style="padding:4px 10px; font-size:12px;" onclick="cerrarModalPosiciones()">✕</button>
+      <h3 style="margin:0; color:var(--azul);">Tabla de Posiciones</h3>
+      <button type="button" class="btn btn-secondary" style="padding:4px 10px; font-size:12px;" onclick="cerrarModalPosiciones()">&times;</button>
     </div>
     <p style="color:var(--gris); font-size:13px; margin:0 0 14px;" id="pos-subtitulo">Puntos acumulados en todas las asignaciones de la materia:</p>
     <div id="pos-lista" style="max-height:60vh; overflow-y:auto; display:flex; flex-direction:column; gap:8px;"></div>
@@ -265,6 +265,7 @@
   </div>
 </div>
 
+<script src="js/icons.js"></script>
 <script src="js/config.js"></script>
 <script>
 window.sb = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
@@ -276,13 +277,13 @@ let estudianteIdActual = null;
 let asignacionesActuales = [];
 
 const TIPOS_INFO = {
-  cuestionario: { icono: "🧠", texto: "Cuestionario" },
-  vocabulario: { icono: "🔤", texto: "Vocabulario / Verbos" },
-  texto_libre: { icono: "📝", texto: "Texto libre" },
-  ensayo: { icono: "📄", texto: "Ensayo" },
-  reporte_lectura: { icono: "📖", texto: "Reporte de lectura" },
-  exegesis: { icono: "📜", texto: "Exégesis" },
-  presentacion: { icono: "🎤", texto: "Presentación PPT" }
+  cuestionario: { icono: "brain", texto: "Cuestionario" },
+  vocabulario: { icono: "type", texto: "Vocabulario / Verbos" },
+  texto_libre: { icono: "pencil-note", texto: "Texto libre" },
+  ensayo: { icono: "file-text", texto: "Ensayo" },
+  reporte_lectura: { icono: "book-open", texto: "Reporte de lectura" },
+  exegesis: { icono: "file-text", texto: "Exégesis" },
+  presentacion: { icono: "mic", texto: "Presentación PPT" }
 };
 
 function escapeHtml(str) {
@@ -308,6 +309,10 @@ function mostrarPaso(paso) {
 }
 
 async function inicializar() {
+  document.getElementById("topbar-icon").innerHTML = Icon("school", 20);
+  document.getElementById("step1-icon").innerHTML = Icon("school", 40);
+  document.getElementById("step2-icon").innerHTML = Icon("user", 40);
+
   const params = new URLSearchParams(window.location.search);
   const codigo = params.get("codigo");
 
@@ -423,7 +428,7 @@ function actualizarBadgeEstudiante() {
   const est = estudiantesActuales.find(e => e.id === estudianteIdActual);
 
   if (est) {
-    nombreEl.textContent = "👤 " + est.nombre;
+    nombreEl.textContent = est.nombre;
     badge.classList.remove("hidden");
   } else {
     badge.classList.add("hidden");
@@ -431,12 +436,12 @@ function actualizarBadgeEstudiante() {
 }
 
 function iconoMaterialClase(m) {
-  if (m.tipo === "enlace") return "🔗";
+  if (m.tipo === "enlace") return Icon("link");
   const nombre = (m.archivo_nombre || "").toLowerCase();
-  if (nombre.endsWith(".pdf")) return "📕";
-  if (nombre.endsWith(".ppt") || nombre.endsWith(".pptx")) return "📊";
-  if (nombre.endsWith(".doc") || nombre.endsWith(".docx")) return "📄";
-  return "📎";
+  if (nombre.endsWith(".pdf")) return Icon("file-text");
+  if (nombre.endsWith(".ppt") || nombre.endsWith(".pptx")) return Icon("chart");
+  if (nombre.endsWith(".doc") || nombre.endsWith(".docx")) return Icon("file-text");
+  return Icon("paperclip");
 }
 
 async function cargarMateriales() {
@@ -455,7 +460,7 @@ async function cargarMateriales() {
   tarjeta.style.display = "block";
   cont.innerHTML = data.map(m => {
     const enlace = m.tipo === "enlace" ? m.enlace_url : m.archivo_url;
-    const textoAccion = m.tipo === "enlace" ? "Abrir enlace ↗" : "Descargar ↓";
+    const textoAccion = m.tipo === "enlace" ? "Abrir enlace" : "Descargar";
     return `
       <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 12px; border:1px solid var(--borde); border-radius:8px;">
         <div style="display:flex; align-items:center; gap:10px; min-width:0;">
@@ -463,7 +468,7 @@ async function cargarMateriales() {
           <div style="min-width:0;">
             <div style="font-weight:700; color:var(--azul); font-size:14px;">${escapeHtml(m.titulo)}</div>
             ${m.descripcion ? `<div style="font-size:12px; color:var(--gris);">${escapeHtml(m.descripcion)}</div>` : ""}
-            ${m.asignacion_titulo ? `<div style="font-size:11px; color:var(--cyan-dark); font-weight:600;">📌 ${escapeHtml(m.asignacion_titulo)}</div>` : ""}
+            ${m.asignacion_titulo ? `<div style="font-size:11px; color:var(--cyan-dark); font-weight:600;">${Icon("pin")} ${escapeHtml(m.asignacion_titulo)}</div>` : ""}
           </div>
         </div>
         <a class="btn btn-secondary" style="padding:6px 12px; font-size:12px; flex-shrink:0;" href="${enlace}" target="_blank" rel="noopener">${textoAccion}</a>
@@ -502,7 +507,7 @@ async function cargarFeed() {
   if (total === 0) {
     cont.innerHTML = `
       <div class="card empty-state">
-        <div style="font-size:38px; margin-bottom:8px;">📚</div>
+        <div style="font-size:38px; margin-bottom:8px;">${Icon("book", 38)}</div>
         <h3 style="color:var(--azul); margin:0 0 6px;">No hay asignaciones aún</h3>
         <p style="color:var(--gris); margin:0;">Tu profesor no ha publicado tareas para esta materia todavía.</p>
       </div>
@@ -513,33 +518,33 @@ async function cargarFeed() {
   const hoy = new Date().toISOString().slice(0, 10);
 
   cont.innerHTML = asignacionesActuales.map(a => {
-    const infoTipo = TIPOS_INFO[a.tipo] || { icono: "📌", texto: a.tipo };
+    const infoTipo = TIPOS_INFO[a.tipo] || { icono: "pin", texto: a.tipo };
     const vencida = a.fecha_entrega && a.fecha_entrega < hoy && a.estado === "pendiente";
 
     let badgeEstadoHtml = "";
-    let textoBoton = "Abrir tarea →";
+    let textoBoton = "Abrir tarea";
 
     if (a.estado === "calificado") {
       badgeEstadoHtml = `
         <span class="status-badge status-calificado">
-          ✓ Calificado: <strong>${a.puntuacion} / ${a.puntos} pts</strong>
+          ${Icon("check")} Calificado: <strong>${a.puntuacion} / ${a.puntos} pts</strong>
         </span>
       `;
-      textoBoton = "Ver resultados →";
+      textoBoton = "Ver resultados";
     } else if (a.estado === "entregado") {
       badgeEstadoHtml = `
         <span class="status-badge status-entregado">
-          ⏳ Entregado (intento ${a.intentos}/2) · En revisión
+          ${Icon("check-circle")} Entregado (intento ${a.intentos}/2) · En revisión
         </span>
       `;
-      textoBoton = a.intentos < 2 ? `Ver entrega / Reintentar (${a.intentos + 1}/2) →` : "Ver mi entrega →";
+      textoBoton = a.intentos < 2 ? `Ver entrega / Reintentar (${a.intentos + 1}/2)` : "Ver mi entrega";
     } else {
       if (vencida) {
-        badgeEstadoHtml = `<span class="status-badge status-vencida">⚠️ Vencida · Pendiente</span>`;
+        badgeEstadoHtml = `<span class="status-badge status-vencida">${Icon("alert-triangle")} Vencida · Pendiente</span>`;
       } else {
-        badgeEstadoHtml = `<span class="status-badge status-pendiente">⚪ Pendiente</span>`;
+        badgeEstadoHtml = `<span class="status-badge status-pendiente">${Icon("circle")} Pendiente</span>`;
       }
-      textoBoton = "Entregar ahora →";
+      textoBoton = "Entregar ahora";
     }
 
     const urlEntrega = `entrar.html?codigo=${encodeURIComponent(a.codigo_acceso)}&estudiante=${encodeURIComponent(estudianteIdActual)}&materia=${encodeURIComponent(codigoMateriaActual)}`;
@@ -550,7 +555,7 @@ async function cargarFeed() {
           <div>
             <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
               <span class="badge" style="background:var(--azul-claro); color:var(--cyan-dark); font-size:11px;">
-                ${infoTipo.icono} ${infoTipo.texto}
+                ${Icon(infoTipo.icono)} ${infoTipo.texto}
               </span>
               <span style="font-size:12px; color:var(--gris); font-weight:700;">Vale ${a.puntos} pts</span>
             </div>
@@ -562,7 +567,7 @@ async function cargarFeed() {
         ${a.descripcion ? `<p class="asig-desc">${escapeHtml(a.descripcion)}</p>` : ""}
 
         <div class="asig-meta" style="border-top:1px solid #f1f3f4; padding-top:10px; margin-top:4px;">
-          <span>📅 Fecha límite: <strong>${formatoFecha(a.fecha_entrega)}${a.hora_entrega ? " " + a.hora_entrega.slice(0, 5) : ""}</strong></span>
+          <span>${Icon("calendar")} Fecha límite: <strong>${formatoFecha(a.fecha_entrega)}${a.hora_entrega ? " " + a.hora_entrega.slice(0, 5) : ""}</strong></span>
           <span style="margin-left:auto; color:var(--cyan); font-weight:700; font-size:13px;">${textoBoton}</span>
         </div>
       </div>
@@ -590,15 +595,18 @@ async function abrirModalPosiciones() {
     return;
   }
 
-  const medallas = ["🥇", "🥈", "🥉"];
+  const coloresMedalla = ["#d4af37", "#a8a8a8", "#b5651d"];
 
   cont.innerHTML = data.map((row, i) => {
     const esYo = row.estudiante_id === estudianteIdActual;
+    const marcador = i < 3
+      ? `<span style="color:${coloresMedalla[i]};">${Icon("medal")}</span>`
+      : (i + 1) + ".";
     return `
       <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 14px; border-radius:8px;
         background:${esYo ? "var(--azul-claro)" : "#f8f9fa"}; border:${esYo ? "2px solid var(--cyan)" : "1px solid var(--borde)"};">
         <span style="font-weight:${esYo ? "700" : "600"}; color:var(--azul);">
-          ${i < 3 ? medallas[i] : (i + 1) + "."} ${escapeHtml(row.nombre)} ${esYo ? " (Tú)" : ""}
+          ${marcador} ${escapeHtml(row.nombre)} ${esYo ? " (Tú)" : ""}
         </span>
         <span style="font-weight:800; color:var(--cyan-dark); font-size:14px;">
           ${row.puntos_totales} pts

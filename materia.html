@@ -45,7 +45,7 @@
         <p style="color:var(--gris); margin:2px 0 0; font-size:13px;">Gestiona tareas, cuestionarios y vocabulario de esta materia.</p>
       </div>
       <div style="display:flex; gap:8px; flex-wrap:wrap;">
-        <button class="btn btn-secondary" onclick="abrirReporteAsignaciones()">📈 Reporte de asignaciones</button>
+        <button class="btn btn-secondary" onclick="abrirReporteAsignaciones()"><span data-icon="pie-chart" data-icon-size="14"></span> Reporte de asignaciones</button>
         <button class="btn btn-primary" style="padding:10px 22px; font-size:14px; font-weight:700;" onclick="abrirModalAsignaciones()">+ Crear asignación</button>
       </div>
     </div>
@@ -53,7 +53,7 @@
     <div class="card" style="margin-bottom:20px;">
       <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
         <div>
-          <h3 style="margin:0; color:var(--azul); font-size:16px;">📎 Materiales de la clase</h3>
+          <h3 style="margin:0; color:var(--azul); font-size:16px;"><span data-icon="paperclip" data-icon-size="15"></span> Materiales de la clase</h3>
           <p style="color:var(--gris); margin:2px 0 0; font-size:12px;">Libros, PPT, documentos Word, videos y artículos para tus estudiantes.</p>
         </div>
         <button class="btn btn-secondary" onclick="abrirModalMaterial()">+ Agregar material</button>
@@ -150,7 +150,7 @@
       </div>
 
       <div id="bloque-archivo-info" class="hidden" style="background:#eaf4fc; border-radius:6px; padding:10px; font-size:13px; color:#16305c; margin-bottom:14px;">
-        📎 El estudiante deberá subir un archivo (PDF, Word o PowerPoint) para entregar esta asignación.
+        <span data-icon="paperclip" data-icon-size="14"></span> El estudiante deberá subir un archivo (PDF, Word o PowerPoint) para entregar esta asignación.
       </div>
 
       <!-- Constructor de preguntas para asignaciones tipo cuestionario -->
@@ -301,7 +301,7 @@
     <div id="registro-codigo" style="font-size:22px; font-weight:700; letter-spacing:3px; color:var(--azul); margin-bottom:12px;"></div>
 
     <div style="background:var(--azul-claro); border-radius:8px; padding:12px; margin-bottom:12px; text-align:left;">
-      <div style="font-size:13px; font-weight:700; color:var(--azul); margin-bottom:4px;">🏫 Enlace del salón de clases</div>
+      <div style="font-size:13px; font-weight:700; color:var(--azul); margin-bottom:4px;"><span data-icon="school" data-icon-size="14"></span> Enlace del salón de clases</div>
       <div style="font-size:12px; color:var(--gris); margin-bottom:8px;">Tus estudiantes verán todas las tareas de esta materia en una sola pantalla.</div>
       <div style="display:flex; gap:6px; flex-wrap:wrap;">
         <button type="button" class="btn btn-secondary" style="padding:6px 12px; font-size:12px;" onclick="copiarLinkClase()">Copiar enlace</button>
@@ -310,7 +310,7 @@
     </div>
 
     <div style="background:#f8f9fa; border:1px solid var(--borde); border-radius:8px; padding:12px; margin-bottom:12px; text-align:left;">
-      <div style="font-size:13px; font-weight:700; color:#3c4043; margin-bottom:4px;">📝 Enlace de auto-registro</div>
+      <div style="font-size:13px; font-weight:700; color:#3c4043; margin-bottom:4px;"><span data-icon="pencil-note" data-icon-size="14"></span> Enlace de auto-registro</div>
       <div style="font-size:12px; color:var(--gris); margin-bottom:8px;">Para que estudiantes nuevos se agreguen automáticamente a la materia.</div>
       <div style="display:flex; gap:6px; flex-wrap:wrap;">
         <button type="button" class="btn btn-secondary" style="padding:6px 12px; font-size:12px;" onclick="copiarLinkRegistro()">Copiar enlace</button>
@@ -324,6 +324,7 @@
 
 <script src="js/config.js"></script>
 <script src="js/supabaseClient.js"></script>
+<script src="js/icons.js"></script>
 <script src="js/sidebar.js"></script>
 <script src="js/materia.js"></script>
 </body>

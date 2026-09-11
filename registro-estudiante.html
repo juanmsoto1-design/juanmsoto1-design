@@ -10,7 +10,7 @@
 <body>
 <div class="login-wrapper">
   <div class="card login-card" style="max-width:420px;">
-    <h1 style="font-size:20px;">📝 Registro de estudiante</h1>
+    <h1 style="font-size:20px;"><span data-icon="pencil-note" data-icon-size="18"></span> Registro de estudiante</h1>
     <p class="subtitle">UNAD</p>
 
     <div id="paso-form">
@@ -31,7 +31,7 @@
     </div>
 
     <div id="paso-exito" class="hidden" style="text-align:center;">
-      <div style="font-size:40px;">✅</div>
+      <div style="color:var(--verde);"><span data-icon="check-circle" data-icon-size="40"></span></div>
       <h3 style="color:#1e7a34;">¡Registrado!</h3>
       <p style="color:#6b7280; font-size:14px;">Ya quedaste agregado a la materia. Tu profesor podrá calificarte a partir de ahora.</p>
       <button class="btn btn-secondary" style="width:100%;" onclick="window.location.href='entrar.html'">Ir a entregar una asignación</button>
@@ -39,6 +39,7 @@
   </div>
 </div>
 
+<script src="js/icons.js"></script>
 <script src="js/config.js"></script>
 <script>
 window.sb = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
