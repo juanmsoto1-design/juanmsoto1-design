@@ -4,6 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Salón de Clases · Registro ADSE</title>
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#16305c" />
+<link rel="apple-touch-icon" href="icon-192.png" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Salón de Clases" />
+
   <link rel="stylesheet" href="css/style.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
@@ -328,7 +336,13 @@ async function inicializar() {
   document.getElementById("step2-icon").innerHTML = Icon("user", 40);
 
   const params = new URLSearchParams(window.location.search);
-  const codigo = params.get("codigo");
+  let codigo = params.get("codigo");
+
+  // Si abren el ícono instalado sin código en el link, usar el último que
+  // usaron en este dispositivo (para que la app abra directo en su clase).
+  if (!codigo) {
+    codigo = localStorage.getItem("ultimo_codigo_materia");
+  }
 
   if (!codigo) {
     mostrarPaso("pedir-codigo");
@@ -336,6 +350,7 @@ async function inicializar() {
   }
 
   codigoMateriaActual = codigo.trim().toUpperCase();
+  localStorage.setItem("ultimo_codigo_materia", codigoMateriaActual);
   await cargarMateriaYEstudiantes();
 }
 
@@ -751,6 +766,13 @@ function cerrarModalPosiciones() {
 }
 
 document.addEventListener("DOMContentLoaded", inicializar);
+</script>
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("sw.js").catch(() => {});
+  });
+}
 </script>
 </body>
 </html>
