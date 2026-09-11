@@ -1,6 +1,6 @@
 {
-  "name": "Salón de Clases · Registro de Calificaciones",
-  "short_name": "Salón de Clases",
+  "name": "FATEO · Registro de Calificaciones",
+  "short_name": "FATEO",
   "description": "Consulta tus asignaciones, materiales y novedades de clase.",
   "start_url": "clase.html",
   "scope": "/",
