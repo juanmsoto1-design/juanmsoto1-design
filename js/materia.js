@@ -11,6 +11,8 @@ let entregasGlobales = [];
 let realtimeChannel = null;
 let perfilActual = null;
 let materiales = [];
+let anuncios = [];
+let anuncioEditandoId = null;
 const EXTENSIONES_MATERIAL_VALIDAS = [".pdf", ".doc", ".docx", ".ppt", ".pptx"];
 
 function escapeHtml(str) {
@@ -21,25 +23,27 @@ function escapeHtml(str) {
 }
 
 function cambiarPestanaMateria(pestana) {
-  const tabCalifs = document.getElementById("tab-btn-calificaciones");
-  const tabSalon = document.getElementById("tab-btn-salon");
-  const vistaCalifs = document.getElementById("vista-calificaciones");
-  const vistaSalon = document.getElementById("vista-salon");
-
-  if (!tabCalifs || !tabSalon || !vistaCalifs || !vistaSalon) return;
+  const pestanas = ["calificaciones", "salon", "novedades"];
+  let ok = true;
+  pestanas.forEach(p => {
+    const tab = document.getElementById(`tab-btn-${p}`);
+    const vista = document.getElementById(`vista-${p}`);
+    if (!tab || !vista) { ok = false; return; }
+    if (p === pestana) {
+      tab.classList.add("active");
+      vista.classList.remove("hidden");
+    } else {
+      tab.classList.remove("active");
+      vista.classList.add("hidden");
+    }
+  });
+  if (!ok) return;
 
   if (pestana === "salon") {
-    tabCalifs.classList.remove("active");
-    tabSalon.classList.add("active");
-    vistaCalifs.classList.add("hidden");
-    vistaSalon.classList.remove("hidden");
     renderListaAsignaciones();
     renderListaMateriales();
-  } else {
-    tabCalifs.classList.add("active");
-    tabSalon.classList.remove("active");
-    vistaCalifs.classList.remove("hidden");
-    vistaSalon.classList.add("hidden");
+  } else if (pestana === "novedades") {
+    cargarAnuncios();
   }
 }
 
@@ -899,6 +903,150 @@ async function eliminarMaterial(id) {
   await cargarTodo();
 }
 
+// ---------- Novedades (anuncios estilo Google Classroom) ----------
+
+async function cargarAnuncios() {
+  const { data: anunciosData, error } = await window.sb
+    .from("anuncios")
+    .select("*")
+    .eq("materia_id", materiaId)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    document.getElementById("lista-anuncios").innerHTML = `<p class="error-msg">Error cargando novedades: ${escapeHtml(error.message)}</p>`;
+    return;
+  }
+
+  const ids = (anunciosData || []).map(a => a.id);
+  let comentariosData = [];
+  if (ids.length > 0) {
+    const { data: coms } = await window.sb
+      .from("anuncio_comentarios")
+      .select("*")
+      .in("anuncio_id", ids)
+      .order("created_at", { ascending: true });
+    comentariosData = coms || [];
+  }
+
+  anuncios = (anunciosData || []).map(a => ({
+    ...a,
+    comentarios: comentariosData.filter(c => c.anuncio_id === a.id)
+  }));
+
+  renderListaAnuncios();
+}
+
+function formatoFechaHora(f) {
+  if (!f) return "";
+  const d = new Date(f);
+  return d.toLocaleDateString("es-DO", { day: "numeric", month: "short" }) + " · " +
+    d.toLocaleTimeString("es-DO", { hour: "2-digit", minute: "2-digit" });
+}
+
+function renderListaAnuncios() {
+  const cont = document.getElementById("lista-anuncios");
+  if (!cont) return;
+
+  if (!anuncios || anuncios.length === 0) {
+    cont.innerHTML = `<p style="color:var(--gris); font-size:13px; margin:6px 0;">Aún no has publicado ningún anuncio. Usa "+ Nuevo anuncio" para escribir el primero.</p>`;
+    return;
+  }
+
+  cont.innerHTML = anuncios.map(a => `
+    <div class="card" style="margin-bottom:0;">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px;">
+        <div>
+          <div style="font-weight:700; color:var(--azul); font-size:14px;">${escapeHtml(a.autor_nombre || "Profesor")}</div>
+          <div style="font-size:12px; color:var(--gris);">${formatoFechaHora(a.created_at)}${a.editado_at ? " · editado" : ""}</div>
+        </div>
+        <div style="display:flex; gap:6px; flex-shrink:0;">
+          <button type="button" class="btn btn-secondary" style="padding:4px 8px; font-size:11px;" title="Editar anuncio" onclick="abrirModalAnuncio('${a.id}')">${Icon("edit")}</button>
+          <button type="button" class="btn btn-danger" style="padding:4px 8px; font-size:11px;" title="Eliminar anuncio" onclick="eliminarAnuncio('${a.id}')">${Icon("trash")}</button>
+        </div>
+      </div>
+      <p style="white-space:pre-wrap; font-size:14px; margin:10px 0;">${escapeHtml(a.texto)}</p>
+
+      <div style="border-top:1px solid #f1f3f4; padding-top:10px; margin-top:6px;">
+        <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:10px;">
+          ${(a.comentarios || []).map(c => `
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; background:#f8f9fa; border-radius:8px; padding:8px 10px;">
+              <div>
+                <div style="font-size:12px; font-weight:700; color:${c.autor_tipo === "profesor" ? "var(--cyan-dark)" : "var(--azul)"};">${escapeHtml(c.autor_nombre)}${c.autor_tipo === "profesor" ? " (Profesor)" : ""}</div>
+                <div style="font-size:13px;">${escapeHtml(c.texto)}</div>
+              </div>
+              <button type="button" class="btn btn-secondary" style="padding:2px 6px; font-size:10px; flex-shrink:0;" title="Eliminar comentario" onclick="eliminarComentarioAnuncio('${c.id}')">${Icon("x")}</button>
+            </div>
+          `).join("") || `<p style="color:var(--gris); font-size:12px; margin:0;">Aún no hay comentarios.</p>`}
+        </div>
+        <div style="display:flex; gap:6px;">
+          <input type="text" id="comentario-input-${a.id}" placeholder="Escribe un comentario..." style="margin:0; flex:1;" onkeydown="if(event.key==='Enter'){publicarComentarioProfesor('${a.id}');}" />
+          <button type="button" class="btn btn-secondary" style="padding:8px 14px; font-size:12px;" onclick="publicarComentarioProfesor('${a.id}')">Comentar</button>
+        </div>
+      </div>
+    </div>
+  `).join("");
+}
+
+function abrirModalAnuncio(id) {
+  anuncioEditandoId = id || null;
+  document.getElementById("anuncio-error").textContent = "";
+  document.getElementById("form-anuncio").reset();
+
+  if (id) {
+    const a = anuncios.find(x => x.id === id);
+    if (!a) return;
+    document.getElementById("an-texto").value = a.texto;
+    document.getElementById("modal-anuncio-titulo").textContent = "Editar anuncio";
+    document.getElementById("btn-guardar-anuncio").textContent = "Guardar cambios";
+  } else {
+    document.getElementById("modal-anuncio-titulo").textContent = "Nuevo anuncio";
+    document.getElementById("btn-guardar-anuncio").textContent = "Publicar";
+  }
+
+  document.getElementById("modal-anuncio").classList.remove("hidden");
+}
+
+async function eliminarAnuncio(id) {
+  if (!confirm("¿Eliminar este anuncio? También se borrarán sus comentarios.")) return;
+  const { error } = await window.sb.from("anuncios").delete().eq("id", id);
+  if (error) {
+    alert("No se pudo eliminar: " + error.message);
+    return;
+  }
+  await cargarAnuncios();
+}
+
+async function eliminarComentarioAnuncio(id) {
+  if (!confirm("¿Eliminar este comentario?")) return;
+  const { error } = await window.sb.from("anuncio_comentarios").delete().eq("id", id);
+  if (error) {
+    alert("No se pudo eliminar: " + error.message);
+    return;
+  }
+  await cargarAnuncios();
+}
+
+async function publicarComentarioProfesor(anuncioId) {
+  const input = document.getElementById(`comentario-input-${anuncioId}`);
+  const texto = input.value.trim();
+  if (!texto) return;
+
+  const { data: { user } } = await window.sb.auth.getUser();
+  const { error } = await window.sb.from("anuncio_comentarios").insert({
+    anuncio_id: anuncioId,
+    autor_tipo: "profesor",
+    autor_nombre: perfilActual ? perfilActual.full_name : "Profesor",
+    profesor_id: user.id,
+    texto
+  });
+  if (error) {
+    alert("No se pudo publicar el comentario: " + error.message);
+    return;
+  }
+  input.value = "";
+  await cargarAnuncios();
+}
+
 function renderListaAsignaciones() {
   const cont = document.getElementById("feed-profesor-asignaciones") || document.getElementById("lista-asignaciones");
   if (!cont) return;
@@ -1464,6 +1612,41 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     cerrarModal("modal-estudiante");
     await cargarTodo();
+  });
+
+  document.getElementById("form-anuncio").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const texto = document.getElementById("an-texto").value.trim();
+    const errorEl = document.getElementById("anuncio-error");
+    errorEl.textContent = "";
+
+    const btn = document.getElementById("btn-guardar-anuncio");
+    btn.disabled = true;
+
+    try {
+      if (anuncioEditandoId) {
+        const { error } = await window.sb.from("anuncios").update({
+          texto, editado_at: new Date().toISOString()
+        }).eq("id", anuncioEditandoId);
+        if (error) { errorEl.textContent = "Error: " + error.message; return; }
+      } else {
+        const { data: { user } } = await window.sb.auth.getUser();
+        const { error } = await window.sb.from("anuncios").insert({
+          materia_id: materiaId,
+          autor_id: user.id,
+          autor_nombre: perfilActual ? perfilActual.full_name : "Profesor",
+          texto
+        });
+        if (error) { errorEl.textContent = "Error: " + error.message; return; }
+      }
+      anuncioEditandoId = null;
+      cerrarModal("modal-anuncio");
+      await cargarAnuncios();
+    } catch (err) {
+      errorEl.textContent = "Ocurrió un error inesperado: " + (err && err.message ? err.message : err);
+    } finally {
+      btn.disabled = false;
+    }
   });
 
   document.getElementById("form-material").addEventListener("submit", async (e) => {

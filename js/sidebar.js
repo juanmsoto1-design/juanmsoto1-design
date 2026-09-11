@@ -17,6 +17,7 @@ function montarSidebar(cfg) {
       <div style="font-size:12px; color:var(--gris); padding:0 16px 10px;" id="materia-periodo"></div>
       <a class="sidebar-item" href="dashboard.html">${Icon("arrow-left")} Volver a mis materias</a>
 
+      <a class="sidebar-item" id="tab-btn-novedades" href="#" onclick="cambiarPestanaMateria('novedades'); return false;">${Icon("pencil-note")} Novedades</a>
       <a class="sidebar-item active" id="tab-btn-calificaciones" href="#" onclick="cambiarPestanaMateria('calificaciones'); return false;">${Icon("chart")} Calificaciones</a>
       <a class="sidebar-item" id="tab-btn-salon" href="#" onclick="cambiarPestanaMateria('salon'); return false;">${Icon("school")} Salón de clases</a>
 

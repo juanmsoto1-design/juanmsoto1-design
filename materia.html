@@ -18,6 +18,18 @@
       <div class="saving-indicator" id="saving-indicator"></div>
       <input type="file" id="input-excel" accept=".xlsx,.xls" class="hidden" />
 
+  <!-- Vista 0: Novedades (anuncios estilo Google Classroom) -->
+  <div id="vista-novedades" class="hidden">
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:18px;">
+      <div>
+        <h2 style="color:var(--azul); margin:0; font-size:20px;">Novedades</h2>
+        <p style="color:var(--gris); margin:2px 0 0; font-size:13px;">Publica avisos para tus estudiantes y responde sus comentarios.</p>
+      </div>
+      <button class="btn btn-primary" onclick="abrirModalAnuncio()">+ Nuevo anuncio</button>
+    </div>
+    <div id="lista-anuncios" style="display:flex; flex-direction:column; gap:14px;"></div>
+  </div>
+
   <!-- Vista 1: Calificaciones -->
   <div id="vista-calificaciones">
     <div id="alerta-riesgo" class="card hidden" style="border-left:4px solid #b3261e; background:#fff8f7;"></div>
@@ -224,6 +236,22 @@
       <div style="display:flex; gap:8px; justify-content:flex-end">
         <button type="button" class="btn btn-secondary" onclick="cerrarModal('modal-material')">Cancelar</button>
         <button type="submit" class="btn btn-primary" id="btn-guardar-material">Subir material</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal nuevo/editar anuncio (Novedades) -->
+<div id="modal-anuncio" class="modal-backdrop hidden">
+  <div class="modal" style="max-width:560px;">
+    <h3 style="color:var(--azul);" id="modal-anuncio-titulo">Nuevo anuncio</h3>
+    <form id="form-anuncio">
+      <label for="an-texto">Mensaje para tus estudiantes</label>
+      <textarea id="an-texto" rows="5" required placeholder="Escribe el anuncio para tus estudiantes..." style="width:100%; padding:10px 12px; border:1px solid var(--borde); border-radius:6px; font-size:14px; margin-bottom:14px; font-family:inherit; resize:vertical;"></textarea>
+      <div class="error-msg" id="anuncio-error"></div>
+      <div style="display:flex; gap:8px; justify-content:flex-end">
+        <button type="button" class="btn btn-secondary" onclick="cerrarModal('modal-anuncio')">Cancelar</button>
+        <button type="submit" class="btn btn-primary" id="btn-guardar-anuncio">Publicar</button>
       </div>
     </form>
   </div>
