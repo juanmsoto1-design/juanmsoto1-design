@@ -23,7 +23,7 @@ function escapeHtml(str) {
 }
 
 function cambiarPestanaMateria(pestana) {
-  const pestanas = ["calificaciones", "salon", "novedades"];
+  const pestanas = ["calificaciones", "salon"];
   let ok = true;
   pestanas.forEach(p => {
     const tab = document.getElementById(`tab-btn-${p}`);
@@ -40,10 +40,35 @@ function cambiarPestanaMateria(pestana) {
   if (!ok) return;
 
   if (pestana === "salon") {
+    // Al entrar a Salón de clases, mostrar Novedades por defecto (como Google Classroom)
+    cambiarSubPestanaSalon("novedades");
+  }
+}
+
+function cambiarSubPestanaSalon(sub) {
+  const subs = ["novedades", "trabajo"];
+  subs.forEach(s => {
+    const tab = document.getElementById(`subtab-btn-${s}`);
+    const vista = document.getElementById(`subvista-${s}`);
+    if (!tab || !vista) return;
+    if (s === sub) {
+      tab.className = "btn btn-primary";
+      vista.classList.remove("hidden");
+    } else {
+      tab.className = "btn btn-secondary";
+      vista.classList.add("hidden");
+    }
+  });
+  document.querySelectorAll('[id^="subtab-btn-"]').forEach(b => {
+    b.style.padding = "8px 18px";
+    b.style.fontSize = "13px";
+  });
+
+  if (sub === "novedades") {
+    cargarAnuncios();
+  } else if (sub === "trabajo") {
     renderListaAsignaciones();
     renderListaMateriales();
-  } else if (pestana === "novedades") {
-    cargarAnuncios();
   }
 }
 
@@ -2018,6 +2043,7 @@ document.addEventListener("DOMContentLoaded", () => {
     cerrarModal("modal-asignaciones");
     await cargarTodo();
     cambiarPestanaMateria("salon");
+    cambiarSubPestanaSalon("trabajo");
   });
 
   document.getElementById("input-excel").addEventListener("change", async (e) => {

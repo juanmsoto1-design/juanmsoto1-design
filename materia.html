@@ -18,18 +18,6 @@
       <div class="saving-indicator" id="saving-indicator"></div>
       <input type="file" id="input-excel" accept=".xlsx,.xls" class="hidden" />
 
-  <!-- Vista 0: Novedades (anuncios estilo Google Classroom) -->
-  <div id="vista-novedades" class="hidden">
-    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:18px;">
-      <div>
-        <h2 style="color:var(--azul); margin:0; font-size:20px;">Novedades</h2>
-        <p style="color:var(--gris); margin:2px 0 0; font-size:13px;">Publica avisos para tus estudiantes y responde sus comentarios.</p>
-      </div>
-      <button class="btn btn-primary" onclick="abrirModalAnuncio()">+ Nuevo anuncio</button>
-    </div>
-    <div id="lista-anuncios" style="display:flex; flex-direction:column; gap:14px;"></div>
-  </div>
-
   <!-- Vista 1: Calificaciones -->
   <div id="vista-calificaciones">
     <div id="alerta-riesgo" class="card hidden" style="border-left:4px solid #b3261e; background:#fff8f7;"></div>
@@ -49,31 +37,45 @@
     </div>
   </div>
 
-  <!-- Vista 2: Salón de clases (Feed estilo Google Classroom) -->
+  <!-- Vista 2: Salón de clases (Novedades + Trabajo de clase, estilo Google Classroom) -->
   <div id="vista-salon" class="hidden">
-    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:18px;">
-      <div>
-        <h2 style="color:var(--azul); margin:0; font-size:20px;">Trabajo de clase</h2>
-        <p style="color:var(--gris); margin:2px 0 0; font-size:13px;">Gestiona tareas, cuestionarios y vocabulario de esta materia.</p>
+    <div style="margin-bottom:18px;">
+      <h2 style="color:var(--azul); margin:0 0 2px; font-size:20px;">Salón de clases</h2>
+      <p style="color:var(--gris); margin:0 0 14px; font-size:13px;">Anuncios, materiales, tareas, cuestionarios y vocabulario de esta materia.</p>
+      <div style="display:flex; gap:8px;">
+        <button type="button" class="btn btn-primary" id="subtab-btn-novedades" style="padding:8px 18px; font-size:13px;" onclick="cambiarSubPestanaSalon('novedades')">Novedades</button>
+        <button type="button" class="btn btn-secondary" id="subtab-btn-trabajo" style="padding:8px 18px; font-size:13px;" onclick="cambiarSubPestanaSalon('trabajo')">Trabajo de clase</button>
       </div>
-      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+    </div>
+
+    <!-- Sub-vista: Novedades (anuncios estilo Google Classroom) -->
+    <div id="subvista-novedades">
+      <div style="display:flex; justify-content:flex-end; margin-bottom:14px;">
+        <button class="btn btn-primary" onclick="abrirModalAnuncio()">+ Nuevo anuncio</button>
+      </div>
+      <div id="lista-anuncios" style="display:flex; flex-direction:column; gap:14px;"></div>
+    </div>
+
+    <!-- Sub-vista: Trabajo de clase -->
+    <div id="subvista-trabajo" class="hidden">
+      <div style="display:flex; justify-content:flex-end; gap:8px; flex-wrap:wrap; margin-bottom:18px;">
         <button class="btn btn-secondary" onclick="abrirReporteAsignaciones()"><span data-icon="pie-chart" data-icon-size="14"></span> Reporte de asignaciones</button>
         <button class="btn btn-primary" style="padding:10px 22px; font-size:14px; font-weight:700;" onclick="abrirModalAsignaciones()">+ Crear asignación</button>
       </div>
-    </div>
 
-    <div class="card" style="margin-bottom:20px;">
-      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
-        <div>
-          <h3 style="margin:0; color:var(--azul); font-size:16px;"><span data-icon="paperclip" data-icon-size="15"></span> Materiales de la clase</h3>
-          <p style="color:var(--gris); margin:2px 0 0; font-size:12px;">Libros, PPT, documentos Word, videos y artículos para tus estudiantes.</p>
+      <div class="card" style="margin-bottom:20px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
+          <div>
+            <h3 style="margin:0; color:var(--azul); font-size:16px;"><span data-icon="paperclip" data-icon-size="15"></span> Materiales de la clase</h3>
+            <p style="color:var(--gris); margin:2px 0 0; font-size:12px;">Libros, PPT, documentos Word, videos y artículos para tus estudiantes.</p>
+          </div>
+          <button class="btn btn-secondary" onclick="abrirModalMaterial()">+ Agregar material</button>
         </div>
-        <button class="btn btn-secondary" onclick="abrirModalMaterial()">+ Agregar material</button>
+        <div id="lista-materiales" style="display:flex; flex-direction:column; gap:8px;"></div>
       </div>
-      <div id="lista-materiales" style="display:flex; flex-direction:column; gap:8px;"></div>
-    </div>
 
-    <div id="feed-profesor-asignaciones" style="display:flex; flex-direction:column; gap:14px;"></div>
+      <div id="feed-profesor-asignaciones" style="display:flex; flex-direction:column; gap:14px;"></div>
+    </div>
   </div>
 
       <div id="empty-state" class="empty-state hidden"></div>
