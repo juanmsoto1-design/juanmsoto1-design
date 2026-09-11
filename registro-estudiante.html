@@ -13,9 +13,16 @@
     <h1 style="font-size:20px;"><span data-icon="pencil-note" data-icon-size="18"></span> Registro de estudiante</h1>
     <p class="subtitle">UNAD</p>
 
+    <div id="bloque-ya-registrado" class="hidden" style="background:var(--azul-claro); border-radius:8px; padding:10px 12px; margin-bottom:14px; text-align:center;">
+      <div style="font-size:13px; color:var(--azul);">¿Ya te habías registrado antes?</div>
+      <a id="link-ir-salon" href="#" style="font-weight:700; color:var(--cyan-dark); font-size:13px;">Entra directo al Salón de clases</a>
+    </div>
+
     <div id="paso-form">
-      <label for="in-codigo">Código de la materia</label>
-      <input id="in-codigo" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" style="letter-spacing:4px; font-size:20px; text-align:center; font-weight:700;" placeholder="123456" />
+      <div id="bloque-codigo">
+        <label for="in-codigo">Código de la materia</label>
+        <input id="in-codigo" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" style="letter-spacing:4px; font-size:20px; text-align:center; font-weight:700;" placeholder="123456" />
+      </div>
 
       <label for="in-nombre">Nombre completo</label>
       <input id="in-nombre" type="text" placeholder="Tu nombre completo" />
@@ -34,7 +41,8 @@
       <div style="color:var(--verde);"><span data-icon="check-circle" data-icon-size="40"></span></div>
       <h3 style="color:#1e7a34;">¡Registrado!</h3>
       <p style="color:#6b7280; font-size:14px;">Ya quedaste agregado a la materia. Tu profesor podrá calificarte a partir de ahora.</p>
-      <button class="btn btn-secondary" style="width:100%;" onclick="window.location.href='entrar.html'">Ir a entregar una asignación</button>
+      <button class="btn btn-primary" style="width:100%;" id="btn-ir-salon-exito">Entrar al Salón de clases</button>
+      <button class="btn btn-secondary" style="width:100%; margin-top:8px;" onclick="window.location.href='entrar.html'">Ir a entregar una asignación</button>
     </div>
   </div>
 </div>
@@ -79,13 +87,20 @@ async function registrarme() {
   document.getElementById("paso-exito").classList.remove("hidden");
 }
 
-// Si viene con ?codigo=XXXX en el link, autocompleta
+// Si viene con ?codigo=XXXX en el link, autocompleta y oculta el campo de código
 (function () {
   const params = new URLSearchParams(window.location.search);
   const codigo = params.get("codigo");
   if (codigo) {
     document.getElementById("in-codigo").value = codigo;
+    document.getElementById("bloque-codigo").classList.add("hidden");
+    document.getElementById("bloque-ya-registrado").classList.remove("hidden");
+    document.getElementById("link-ir-salon").href = "clase.html?codigo=" + encodeURIComponent(codigo);
   }
+  document.getElementById("btn-ir-salon-exito").addEventListener("click", () => {
+    const codigoFinal = document.getElementById("in-codigo").value.trim();
+    window.location.href = "clase.html?codigo=" + encodeURIComponent(codigoFinal);
+  });
 })();
 </script>
 </body>
