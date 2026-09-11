@@ -93,6 +93,7 @@ async function cargarTodo() {
 
   componentes = comps || [];
   estudiantes = ests || [];
+  await renumerarEstudiantes();
   calificaciones = {};
   (califs || []).forEach(c => {
     if (!calificaciones[c.estudiante_id]) calificaciones[c.estudiante_id] = {};
@@ -371,6 +372,24 @@ async function onCambioNota(e) {
 
   indicador.textContent = error ? ("Error al guardar: " + error.message) : "Guardado";
   if (!error) setTimeout(() => { if (indicador.textContent === "Guardado") indicador.textContent = ""; }, 1500);
+}
+
+// Renumera secuencialmente (1, 2, 3...) a los estudiantes de esta materia,
+// respetando el orden relativo que ya tenían, para cerrar huecos que dejan
+// las eliminaciones (o inconsistencias de auto-registro).
+async function renumerarEstudiantes() {
+  const ordenados = [...estudiantes].sort((a, b) => a.no_orden - b.no_orden);
+  const actualizaciones = [];
+  ordenados.forEach((est, idx) => {
+    const nuevoOrden = idx + 1;
+    if (est.no_orden !== nuevoOrden) {
+      actualizaciones.push(window.sb.from("estudiantes").update({ no_orden: nuevoOrden }).eq("id", est.id));
+      est.no_orden = nuevoOrden;
+    }
+  });
+  if (actualizaciones.length > 0) {
+    await Promise.all(actualizaciones);
+  }
 }
 
 async function eliminarEstudiante(id, nombre) {
