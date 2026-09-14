@@ -25,31 +25,7 @@ async function init() {
   }
 }
 
-// Paleta de colores para las tarjetas de materia (estilo Google Classroom).
-// El color se elige de forma estable según el id de la materia.
-const PALETA_MATERIA = [
-  ["#188038", "#0b6e2f"],
-  ["#1a73e8", "#0b47a1"],
-  ["#8430ce", "#5c1f96"],
-  ["#e37400", "#b25800"],
-  ["#d93025", "#a30000"],
-  ["#00897b", "#00695c"],
-  ["#3949ab", "#1a237e"],
-  ["#00838f", "#005662"]
-];
-
-function colorMateria(id) {
-  let hash = 0;
-  for (const ch of String(id)) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
-  const [c1, c2] = PALETA_MATERIA[hash % PALETA_MATERIA.length];
-  return `linear-gradient(135deg, ${c1} 0%, ${c2} 100%)`;
-}
-
-function colorSolidoMateria(id) {
-  let hash = 0;
-  for (const ch of String(id)) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
-  return PALETA_MATERIA[hash % PALETA_MATERIA.length][0];
-}
+// colorMateria() y colorSolidoMateria() vienen de js/colores.js (compartido).
 
 async function cargarProximasEntregas() {
   const panel = document.getElementById("proximas-panel");

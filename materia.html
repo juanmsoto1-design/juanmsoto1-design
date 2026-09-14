@@ -18,6 +18,17 @@
       <div class="saving-indicator" id="saving-indicator"></div>
       <input type="file" id="input-excel" accept=".xlsx,.xls" class="hidden" />
 
+  <div class="materia-hero" id="materia-hero">
+    <div>
+      <h1 id="hero-materia-nombre">Materia</h1>
+      <p id="hero-materia-periodo"></p>
+    </div>
+    <div class="code-chip hidden" id="hero-materia-codigo-wrap">
+      <span>CÓDIGO:</span>
+      <span id="hero-materia-codigo"></span>
+    </div>
+  </div>
+
   <!-- Vista 1: Calificaciones -->
   <div id="vista-calificaciones">
     <div id="alerta-riesgo" class="card hidden" style="border-left:4px solid #b3261e; background:#fff8f7;"></div>
@@ -367,6 +378,7 @@
 <script src="js/config.js"></script>
 <script src="js/supabaseClient.js"></script>
 <script src="js/icons.js"></script>
+<script src="js/colores.js"></script>
 <script src="js/sidebar.js"></script>
 <script src="js/materia.js"></script>
 </body>

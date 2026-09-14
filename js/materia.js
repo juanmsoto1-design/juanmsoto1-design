@@ -104,8 +104,23 @@ async function cargarTodo() {
     return;
   }
   materia = m;
-  document.getElementById("materia-titulo").innerHTML = Icon("book") + " " + escapeHtml(materia.nombre);
+  const inicialMateria = (materia.nombre || "?").trim().charAt(0).toUpperCase();
+  const colorBanner = colorMateria(materiaId);
+
+  document.getElementById("materia-titulo").textContent = materia.nombre;
   document.getElementById("materia-periodo").textContent = materia.periodo || "";
+  const sidebarBanner = document.getElementById("sidebar-materia-banner");
+  if (sidebarBanner) sidebarBanner.style.background = colorBanner;
+  const sidebarAvatar = document.getElementById("sidebar-materia-avatar");
+  if (sidebarAvatar) sidebarAvatar.textContent = inicialMateria;
+
+  document.getElementById("hero-materia-nombre").textContent = materia.nombre;
+  document.getElementById("hero-materia-periodo").textContent = materia.periodo || "Sin periodo definido";
+  document.getElementById("materia-hero").style.background = colorBanner;
+  if (materia.codigo_registro) {
+    document.getElementById("hero-materia-codigo").textContent = materia.codigo_registro;
+    document.getElementById("hero-materia-codigo-wrap").classList.remove("hidden");
+  }
 
   const [{ data: comps }, { data: ests }, { data: califs }, { data: esc }, { data: asigs }, { data: mats }] = await Promise.all([
     window.sb.from("componentes").select("*").eq("materia_id", materiaId).order("orden", { ascending: true }),

@@ -13,8 +13,13 @@ function montarSidebar(cfg) {
   if (cfg.contexto === "materia") {
     contextoMateria = `
       <div class="sidebar-separator"></div>
-      <div class="sidebar-section-title" id="materia-titulo">${Icon("book")} Materia</div>
-      <div style="font-size:12px; color:var(--gris); padding:0 16px 10px;" id="materia-periodo"></div>
+      <div class="sidebar-materia-banner" id="sidebar-materia-banner">
+        <div class="sidebar-materia-avatar" id="sidebar-materia-avatar">?</div>
+        <div style="min-width:0;">
+          <div class="sidebar-materia-nombre" id="materia-titulo">Materia</div>
+          <div class="sidebar-materia-periodo" id="materia-periodo"></div>
+        </div>
+      </div>
       <a class="sidebar-item" href="dashboard.html">${Icon("arrow-left")} Volver a mis materias</a>
 
       <a class="sidebar-item active" id="tab-btn-calificaciones" href="#" onclick="cambiarPestanaMateria('calificaciones'); return false;">${Icon("chart")} Calificaciones</a>
@@ -42,7 +47,7 @@ function montarSidebar(cfg) {
   mount.innerHTML = `
     <button type="button" class="sidebar-toggle" onclick="document.body.classList.toggle('sidebar-open')">${Icon("menu")}</button>
     <div class="sidebar">
-      <div class="sidebar-brand"><span>${Icon("book-open", 20)}</span><span>Registro de Calificaciones</span></div>
+      <div class="sidebar-brand"><span class="sidebar-brand-icon">${Icon("book-open", 17)}</span><span>Registro de Calificaciones</span></div>
       <div class="sidebar-nav">
         <a class="${esActivo("dashboard")}" href="dashboard.html">${Icon("home")} Mis materias</a>
         <a class="${esActivo("reportes")}" href="reportes.html">${Icon("chart")} Reportes</a>
