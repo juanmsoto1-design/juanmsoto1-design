@@ -160,9 +160,15 @@
 <body>
 
 <div class="topbar">
-  <div style="display:flex; align-items:center; gap:10px;">
+  <div style="display:flex; align-items:center; gap:10px; position:relative;">
     <span style="font-size:20px;" id="topbar-icon"></span>
     <h1 id="topbar-title">Salón de Clases</h1>
+    <div style="position:relative;">
+      <button type="button" class="btn btn-secondary hidden" id="btn-mis-materias" style="padding:6px 12px; font-size:12px; display:flex; align-items:center; gap:6px;" onclick="toggleMenuMisMaterias()">
+        <span id="mis-materias-icon"></span> Mis materias
+      </button>
+      <div id="menu-mis-materias" class="hidden" style="position:absolute; top:115%; left:0; background:white; border:1px solid var(--borde); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,0.14); min-width:230px; z-index:300; padding:6px; max-height:340px; overflow-y:auto;"></div>
+    </div>
   </div>
   <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
     <div id="estudiante-badge" class="hidden" style="display:flex; align-items:center; gap:8px; font-size:13px; color:var(--gris); background:var(--azul-claro); padding:5px 12px; border-radius:999px;">
@@ -335,9 +341,26 @@ async function inicializar() {
   document.getElementById("topbar-icon").innerHTML = Icon("school", 20);
   document.getElementById("step1-icon").innerHTML = Icon("school", 40);
   document.getElementById("step2-icon").innerHTML = Icon("user", 40);
+  document.getElementById("mis-materias-icon").innerHTML = Icon("users", 14);
+
+  actualizarMenuMisMaterias();
+  window.addEventListener("click", (e) => {
+    const menu = document.getElementById("menu-mis-materias");
+    const btn = document.getElementById("btn-mis-materias");
+    if (!menu.contains(e.target) && !btn.contains(e.target)) {
+      menu.classList.add("hidden");
+    }
+  });
 
   const params = new URLSearchParams(window.location.search);
   let codigo = params.get("codigo");
+
+  // Botón "+ Unirme a otra materia": forzar pantalla de código aunque
+  // ya haya una materia guardada como la última usada.
+  if (params.get("nueva")) {
+    mostrarPaso("pedir-codigo");
+    return;
+  }
 
   // Si abren el ícono instalado sin código en el link, usar el último que
   // usaron en este dispositivo (para que la app abra directo en su clase).
@@ -353,6 +376,63 @@ async function inicializar() {
   codigoMateriaActual = codigo.trim().toUpperCase();
   localStorage.setItem("ultimo_codigo_materia", codigoMateriaActual);
   await cargarMateriaYEstudiantes();
+}
+
+// --- Selector "Mis materias": permite ver/cambiar entre todas las
+// materias en las que este estudiante ya se registró en este dispositivo ---
+
+function codigosMateriasGuardados() {
+  const codigos = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith("clase_estudiante_")) {
+      codigos.push(key.replace("clase_estudiante_", ""));
+    }
+  }
+  return codigos;
+}
+
+function toggleMenuMisMaterias() {
+  const menu = document.getElementById("menu-mis-materias");
+  menu.classList.toggle("hidden");
+}
+
+async function actualizarMenuMisMaterias() {
+  const codigos = codigosMateriasGuardados();
+  const btn = document.getElementById("btn-mis-materias");
+  const menu = document.getElementById("menu-mis-materias");
+
+  if (codigos.length === 0) {
+    btn.classList.add("hidden");
+    return;
+  }
+  btn.classList.remove("hidden");
+
+  const filas = await Promise.all(codigos.map(async (cod) => {
+    try {
+      const { data } = await window.sb.rpc("materia_por_codigo_registro", { p_codigo_registro: cod });
+      const nombre = (data && data[0] && data[0].nombre) ? data[0].nombre : cod;
+      return { cod, nombre };
+    } catch (e) {
+      return { cod, nombre: cod };
+    }
+  }));
+
+  menu.innerHTML = filas.map(f => `
+    <div onclick="cambiarDeMateria('${f.cod}')" style="padding:9px 10px; border-radius:8px; cursor:pointer; font-size:13px; display:flex; align-items:center; gap:8px; ${f.cod === codigoMateriaActual ? 'background:var(--azul-claro); color:var(--azul); font-weight:700;' : 'color:var(--texto);'}">
+      ${Icon("book-open", 15)} ${escapeHtml(f.nombre)}
+    </div>
+  `).join("") + `
+    <div style="border-top:1px solid var(--borde); margin:6px 2px; padding-top:6px;">
+      <div onclick="window.location.href='clase.html?nueva=1'" style="padding:9px 10px; border-radius:8px; cursor:pointer; font-size:13px; display:flex; align-items:center; gap:8px; color:var(--cyan-dark); font-weight:700;">
+        ${Icon("plus", 15)} Unirme a otra materia
+      </div>
+    </div>
+  `;
+}
+
+function cambiarDeMateria(codigo) {
+  window.location.href = `clase.html?codigo=${encodeURIComponent(codigo)}`;
 }
 
 function ingresarCodigoManual() {
@@ -404,6 +484,7 @@ async function cargarMateriaYEstudiantes() {
     estudianteIdActual = estGuardado;
     mostrarPaso("feed");
     actualizarBadgeEstudiante();
+    actualizarMenuMisMaterias();
     await cargarFeed();
     await cargarAnunciosEstudiante();
   } else {
@@ -440,8 +521,10 @@ function confirmarEstudiante() {
 
   estudianteIdActual = sel.value;
   localStorage.setItem(`clase_estudiante_${codigoMateriaActual}`, estudianteIdActual);
+  localStorage.setItem("ultimo_codigo_materia", codigoMateriaActual);
   mostrarPaso("feed");
   actualizarBadgeEstudiante();
+  actualizarMenuMisMaterias();
   cargarFeed();
   cargarAnunciosEstudiante();
 }
