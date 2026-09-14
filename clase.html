@@ -169,6 +169,13 @@
       </button>
       <div id="menu-mis-materias" class="hidden" style="position:absolute; top:115%; left:0; background:white; border:1px solid var(--borde); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,0.14); min-width:230px; z-index:300; padding:6px; max-height:340px; overflow-y:auto;"></div>
     </div>
+    <div style="position:relative;">
+      <button type="button" class="btn btn-secondary hidden" id="btn-notificaciones" style="padding:6px 10px; font-size:12px; display:flex; align-items:center; gap:4px; position:relative;" onclick="toggleMenuNotificaciones()">
+        <span id="notif-icon"></span>
+        <span id="badge-notif-count" class="hidden" style="position:absolute; top:-4px; right:-4px; background:#b3261e; color:white; font-size:10px; font-weight:800; border-radius:999px; min-width:16px; height:16px; display:flex; align-items:center; justify-content:center; padding:0 4px;">0</span>
+      </button>
+      <div id="menu-notificaciones" class="hidden" style="position:absolute; top:115%; right:0; background:white; border:1px solid var(--borde); border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,0.14); min-width:280px; max-width:320px; z-index:300; padding:6px; max-height:400px; overflow-y:auto;"></div>
+    </div>
   </div>
   <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
     <div id="estudiante-badge" class="hidden" style="display:flex; align-items:center; gap:8px; font-size:13px; color:var(--gris); background:var(--azul-claro); padding:5px 12px; border-radius:999px;">
@@ -350,6 +357,11 @@ async function inicializar() {
     if (!menu.contains(e.target) && !btn.contains(e.target)) {
       menu.classList.add("hidden");
     }
+    const menuNotif = document.getElementById("menu-notificaciones");
+    const btnNotif = document.getElementById("btn-notificaciones");
+    if (!menuNotif.contains(e.target) && !btnNotif.contains(e.target)) {
+      menuNotif.classList.add("hidden");
+    }
   });
 
   const params = new URLSearchParams(window.location.search);
@@ -435,6 +447,118 @@ function cambiarDeMateria(codigo) {
   window.location.href = `clase.html?codigo=${encodeURIComponent(codigo)}`;
 }
 
+// --- Notificaciones (campanita in-app + push real al celular/PC) ---
+
+const VAPID_PUBLIC_KEY = "BGzMjNwYlRMCpmo3bWsI960O316J1GMrvG3OWl68iO-LYFdgcotBUknMuiXKnGnl4w2I54Dlq9k9_B46BK4NqB0";
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = atob(base64);
+  return Uint8Array.from([...rawData].map((c) => c.charCodeAt(0)));
+}
+
+function tiempoRelativo(fecha) {
+  const seg = Math.floor((Date.now() - new Date(fecha).getTime()) / 1000);
+  if (seg < 60) return "ahora";
+  if (seg < 3600) return `hace ${Math.floor(seg / 60)} min`;
+  if (seg < 86400) return `hace ${Math.floor(seg / 3600)} h`;
+  return `hace ${Math.floor(seg / 86400)} d`;
+}
+
+const ICONO_NOTIF = { asignacion: "clipboard", anuncio: "pin", calificacion: "chart" };
+
+async function activarNotificacionesPush() {
+  if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+    alert("Este navegador no soporta notificaciones push. En iPhone, primero instala la app (Compartir > Agregar a pantalla de inicio) y ábrela desde el ícono.");
+    return;
+  }
+  try {
+    const permiso = await Notification.requestPermission();
+    if (permiso !== "granted") return;
+
+    const reg = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+      });
+    }
+    const json = sub.toJSON();
+    await window.sb.rpc("guardar_push_subscripcion", {
+      p_estudiante_id: estudianteIdActual,
+      p_endpoint: json.endpoint,
+      p_p256dh: json.keys.p256dh,
+      p_auth: json.keys.auth
+    });
+    localStorage.setItem("push_activado", "1");
+    await cargarNotificaciones();
+  } catch (e) {
+    console.warn("No se pudo activar el push:", e);
+  }
+}
+
+async function cargarNotificaciones() {
+  if (!codigoMateriaActual || !estudianteIdActual) return;
+  const btn = document.getElementById("btn-notificaciones");
+  btn.classList.remove("hidden");
+  document.getElementById("notif-icon").innerHTML = Icon("bell", 16);
+
+  const { data, error } = await window.sb.rpc("notificaciones_por_codigo_materia", {
+    p_codigo_registro: codigoMateriaActual,
+    p_estudiante_id: estudianteIdActual
+  });
+  const items = error ? [] : (data || []);
+
+  const claveVisto = `notif_visto_${codigoMateriaActual}`;
+  const ultimaVista = localStorage.getItem(claveVisto);
+  const noLeidas = items.filter(n => !ultimaVista || new Date(n.created_at) > new Date(ultimaVista)).length;
+
+  const badge = document.getElementById("badge-notif-count");
+  if (noLeidas > 0) {
+    badge.textContent = noLeidas > 9 ? "9+" : String(noLeidas);
+    badge.classList.remove("hidden");
+  } else {
+    badge.classList.add("hidden");
+  }
+
+  const permisoPush = ("Notification" in window) ? Notification.permission : "unsupported";
+  const mostrarCTA = permisoPush === "default";
+
+  const cta = mostrarCTA ? `
+    <div style="background:var(--azul-claro); border-radius:8px; padding:10px; margin-bottom:6px; font-size:12px;">
+      <p style="margin:0 0 8px; color:var(--azul); font-weight:600;">Recibe un aviso en tu celular o PC cuando el profesor publique algo nuevo.</p>
+      <button type="button" class="btn btn-primary" style="width:100%; padding:6px; font-size:12px;" onclick="activarNotificacionesPush()">Activar notificaciones</button>
+    </div>
+  ` : "";
+
+  const lista = items.length === 0
+    ? `<p style="font-size:12px; color:var(--gris); text-align:center; padding:14px 6px;">No hay notificaciones todavía.</p>`
+    : items.map(n => `
+      <div style="padding:9px 10px; border-radius:8px; font-size:12.5px; display:flex; gap:8px; align-items:flex-start; border-bottom:1px solid var(--borde);">
+        <span style="color:var(--cyan-dark); flex-shrink:0; margin-top:2px;">${Icon(ICONO_NOTIF[n.tipo] || "bell", 15)}</span>
+        <div>
+          <div style="font-weight:700; color:var(--azul);">${escapeHtml(n.titulo)}</div>
+          ${n.cuerpo ? `<div style="color:var(--gris); margin-top:2px;">${escapeHtml(n.cuerpo)}</div>` : ""}
+          <div style="color:#9aa5b1; margin-top:3px; font-size:11px;">${tiempoRelativo(n.created_at)}</div>
+        </div>
+      </div>
+    `).join("");
+
+  document.getElementById("menu-notificaciones").innerHTML = cta + lista;
+}
+
+function toggleMenuNotificaciones() {
+  const menu = document.getElementById("menu-notificaciones");
+  const abrir = menu.classList.contains("hidden");
+  menu.classList.toggle("hidden");
+  if (abrir && codigoMateriaActual) {
+    localStorage.setItem(`notif_visto_${codigoMateriaActual}`, new Date().toISOString());
+    document.getElementById("badge-notif-count").classList.add("hidden");
+  }
+}
+
 function ingresarCodigoManual() {
   const val = document.getElementById("in-codigo-materia").value.trim().toUpperCase();
   if (!val) {
@@ -487,6 +611,7 @@ async function cargarMateriaYEstudiantes() {
     actualizarMenuMisMaterias();
     await cargarFeed();
     await cargarAnunciosEstudiante();
+    await cargarNotificaciones();
   } else {
     // Mostrar selector de estudiante
     poblarSelectorEstudiantes();
@@ -527,6 +652,7 @@ function confirmarEstudiante() {
   actualizarMenuMisMaterias();
   cargarFeed();
   cargarAnunciosEstudiante();
+  cargarNotificaciones();
 }
 
 function cambiarEstudiante() {

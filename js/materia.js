@@ -397,6 +397,16 @@ async function onCambioNota(e) {
 
   indicador.textContent = error ? ("Error al guardar: " + error.message) : "Guardado";
   if (!error) setTimeout(() => { if (indicador.textContent === "Guardado") indicador.textContent = ""; }, 1500);
+
+  if (!error && valor !== null) {
+    await crearNotificacion({
+      estudianteId,
+      tipo: "calificacion",
+      titulo: "Nueva calificación",
+      cuerpo: "Tu profesor actualizó una de tus notas.",
+      url: enlaceClase(materia.codigo_registro)
+    });
+  }
 }
 
 // Renumera secuencialmente (1, 2, 3...) a los estudiantes de esta materia,
@@ -460,6 +470,23 @@ async function eliminarTodosEstudiantes() {
 
 function enlaceClase(codigo) {
   return `${window.location.origin}/clase.html?codigo=${codigo}`;
+}
+
+// Crea una notificación (in-app + dispara push real via trigger en la BD).
+// estudianteId null = para todos los inscritos en la materia.
+async function crearNotificacion({ estudianteId = null, tipo, titulo, cuerpo = "", url = "" }) {
+  try {
+    await window.sb.from("notificaciones").insert({
+      materia_id: materiaId,
+      estudiante_id: estudianteId,
+      tipo,
+      titulo,
+      cuerpo,
+      url: url || enlaceClase(materia.codigo_registro)
+    });
+  } catch (e) {
+    console.warn("No se pudo crear la notificación:", e);
+  }
 }
 
 function enlaceRegistro(codigo) {
@@ -1372,6 +1399,14 @@ async function guardarVocabularioEstudiante(entregaId, estudianteId, componenteI
     }
   }
 
+  await crearNotificacion({
+    estudianteId,
+    tipo: "calificacion",
+    titulo: "Nueva calificación",
+    cuerpo: "Tu profesor calificó tu entrega de vocabulario.",
+    url: enlaceClase(materia.codigo_registro)
+  });
+
   await cargarTodo();
   alert("Calificación guardada y sumada a la nota del estudiante.");
 }
@@ -1401,6 +1436,14 @@ async function calificarEntrega(entregaId, estudianteId, componenteId) {
       return;
     }
   }
+  await crearNotificacion({
+    estudianteId,
+    tipo: "calificacion",
+    titulo: "Nueva calificación",
+    cuerpo: "Tu profesor calificó tu entrega.",
+    url: enlaceClase(materia.codigo_registro)
+  });
+
   await cargarTodo();
   alert("Puntuación guardada y sumada a la nota del estudiante.");
 }
@@ -1682,6 +1725,14 @@ document.addEventListener("DOMContentLoaded", () => {
           texto
         });
         if (error) { errorEl.textContent = "Error: " + error.message; return; }
+
+        // Notificar a todos los estudiantes de la materia (in-app + push)
+        await crearNotificacion({
+          tipo: "anuncio",
+          titulo: "Nueva novedad en la clase",
+          cuerpo: texto.length > 120 ? texto.slice(0, 117) + "..." : texto,
+          url: enlaceClase(materia.codigo_registro)
+        });
       }
       anuncioEditandoId = null;
       cerrarModal("modal-anuncio");
@@ -2031,6 +2082,14 @@ document.addEventListener("DOMContentLoaded", () => {
       if (materialLecturaId) {
         await window.sb.from("materiales").update({ asignacion_id: asignacionCreada.id }).eq("id", materialLecturaId);
       }
+
+      // Notificar a todos los estudiantes de la materia (in-app + push)
+      await crearNotificacion({
+        tipo: "asignacion",
+        titulo: `Nueva asignación: ${titulo}`,
+        cuerpo: fecha_entrega ? `Fecha de entrega: ${fecha_entrega}` : "Revisa los detalles en el Salón de clases.",
+        url: enlaceClase(materia.codigo_registro)
+      });
     }
 
     document.getElementById("form-asignacion").reset();
