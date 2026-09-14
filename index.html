@@ -8,7 +8,20 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-<div class="login-wrapper">
+<div class="landing-shell">
+  <div class="landing-hero">
+    <div class="landing-hero-inner">
+      <img src="icon-192.png" alt="FATEO" class="landing-logo" />
+      <h1>FATEO</h1>
+      <p class="landing-tagline">Registro de Calificaciones · Asociación Dominicana del Sureste</p>
+      <ul class="landing-features">
+        <li><span class="icon-wrap" data-icon="clipboard" data-icon-size="16"></span> Asignaciones, cuestionarios y vocabulario en un solo lugar</li>
+        <li><span class="icon-wrap" data-icon="bell" data-icon-size="16"></span> Novedades y notificaciones al instante para tus estudiantes</li>
+        <li><span class="icon-wrap" data-icon="chart" data-icon-size="16"></span> Calificaciones y reportes siempre a la mano</li>
+      </ul>
+    </div>
+  </div>
+  <div class="login-wrapper">
   <div class="card login-card">
     <h1>Registro de Calificaciones</h1>
     <p class="subtitle">UNAD</p>
@@ -49,8 +62,10 @@
       </form>
     </div>
   </div>
+  </div>
 </div>
 
+<script src="js/icons.js"></script>
 <script src="js/config.js"></script>
 <script src="js/supabaseClient.js"></script>
 <script>

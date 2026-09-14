@@ -7,6 +7,7 @@
   --rojo: #B3261E;
   --gris: #5F6368;
   --borde: #DADCE0;
+  --texto: #202124;
 }
 
 * { box-sizing: border-box; }
@@ -674,3 +675,194 @@ input.celda-nota:focus {
     padding-top: 46px;
   }
 }
+
+/* ============ Landing (login/registro) ============ */
+.landing-shell {
+  min-height: 100vh;
+  display: flex;
+}
+.landing-hero {
+  flex: 1;
+  background: linear-gradient(135deg, var(--azul) 0%, var(--cyan-dark) 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 40px;
+}
+.landing-hero-inner { max-width: 420px; }
+.landing-logo {
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  margin-bottom: 20px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.25);
+  display: block;
+}
+.landing-hero-inner h1 {
+  font-size: 34px;
+  font-weight: 800;
+  margin: 0 0 6px;
+  letter-spacing: -0.5px;
+  color: white;
+}
+.landing-tagline {
+  font-size: 14px;
+  opacity: .92;
+  margin: 0 0 30px;
+  line-height: 1.5;
+}
+.landing-features {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.landing-features li {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  font-size: 13.5px;
+  opacity: .96;
+  line-height: 1.4;
+}
+.landing-features li .icon-wrap {
+  background: rgba(255,255,255,0.16);
+  border-radius: 8px;
+  padding: 7px;
+  flex-shrink: 0;
+  display: flex;
+}
+.landing-shell .login-wrapper {
+  flex: 1;
+  min-height: auto;
+  background: #F1F3F4;
+}
+@media (max-width: 860px) {
+  .landing-shell { flex-direction: column; }
+  .landing-hero { flex: none; padding: 32px 24px 26px; justify-content: flex-start; }
+  .landing-hero-inner { max-width: none; }
+  .landing-features { display: none; }
+  .landing-hero-inner h1 { font-size: 26px; }
+  .landing-tagline { margin-bottom: 0; }
+}
+
+/* ============ Tarjetas de materia estilo Classroom ============ */
+.materia-card {
+  background: white;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(60, 64, 67, 0.08);
+  border: 1px solid var(--borde);
+  cursor: pointer;
+  transition: box-shadow .15s, transform .15s;
+  display: flex;
+  flex-direction: column;
+}
+.materia-card:hover {
+  box-shadow: 0 6px 18px rgba(30, 142, 62, 0.22);
+  transform: translateY(-2px);
+}
+.materia-card-banner {
+  min-height: 92px;
+  padding: 14px 16px;
+  position: relative;
+  color: white;
+}
+.materia-card-banner h3 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1.25;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.15);
+  padding-right: 44px;
+}
+.materia-card-banner .periodo {
+  font-size: 12px;
+  opacity: .92;
+  margin-top: 3px;
+  padding-right: 44px;
+}
+.materia-card-avatar {
+  position: absolute;
+  right: 16px;
+  bottom: -20px;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: white;
+  border: 3px solid white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 18px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.18);
+}
+.materia-card-body {
+  padding: 28px 16px 6px;
+  flex: 1;
+}
+.materia-card-body .profesor {
+  font-size: 12.5px;
+  color: var(--gris);
+  margin: 0;
+}
+.materia-card-codigo {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--azul-claro);
+  color: var(--azul);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .5px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  margin-top: 10px;
+}
+.materia-card-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 2px;
+  padding: 6px 8px 10px;
+}
+.materia-card-footer span {
+  color: var(--gris);
+  padding: 6px;
+  border-radius: 50%;
+  display: flex;
+}
+
+/* ============ Panel de próximas entregas (home) ============ */
+.proximas-panel {
+  background: white;
+  border: 1px solid var(--borde);
+  border-radius: 14px;
+  padding: 18px 20px;
+  margin-bottom: 22px;
+  box-shadow: 0 1px 3px rgba(60, 64, 67, 0.08);
+}
+.proximas-panel h3 {
+  margin: 0 0 10px;
+  font-size: 15px;
+  color: var(--azul);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.proxima-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--borde);
+  font-size: 13px;
+}
+.proxima-item:last-child { border-bottom: none; }
+.proxima-item .titulo { font-weight: 700; color: #202124; }
+.proxima-item .materia-nombre { color: var(--gris); font-size: 12px; margin-top: 1px; }
+.proxima-item .fecha { color: var(--cyan-dark); font-weight: 700; font-size: 12.5px; white-space: nowrap; text-align: right; }

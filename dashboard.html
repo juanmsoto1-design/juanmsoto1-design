@@ -14,10 +14,18 @@
   <div class="main-content">
     <div class="container">
       <div class="toolbar">
-        <h2 style="margin:0">Mis materias</h2>
+        <div>
+          <h2 style="margin:0" id="saludo-titulo">Mis materias</h2>
+          <p style="margin:4px 0 0; font-size:13px; color:var(--gris);" id="saludo-sub"></p>
+        </div>
         <div class="toolbar-actions">
           <button class="btn btn-primary" onclick="abrirModalMateria()">+ Nueva materia</button>
         </div>
+      </div>
+
+      <div id="proximas-panel" class="proximas-panel hidden">
+        <h3><span data-icon="calendar" data-icon-size="17"></span> Próximas fechas de entrega</h3>
+        <div id="proximas-lista"></div>
       </div>
 
       <div id="materias-grid" class="materia-grid"></div>
