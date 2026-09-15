@@ -263,7 +263,9 @@ function renderAlertaRiesgo() {
       est,
       notaFinal,
       componentesFaltantes,
-      reprobando: notaFinal < 70,
+      // solo se marca "reprobando" si ya tiene al menos un componente calificado;
+      // un estudiante recien importado (sin ninguna nota aun) no debe aparecer como en riesgo
+      reprobando: componentesFaltantes < componentes.length && notaFinal < 70,
       enRiesgoDeNoAlcanzar
     };
   }).filter(x => x.reprobando || x.enRiesgoDeNoAlcanzar);
