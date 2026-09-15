@@ -929,13 +929,17 @@ async function subirArchivoConProgreso(bucket, ruta, file, onProgreso) {
   return new Promise((resolve, reject) => {
     const upload = new tus.Upload(file, {
       endpoint: `https://${projectId}.storage.supabase.co/storage/v1/upload/resumable`,
-      retryDelays: [0, 3000, 5000, 10000, 20000],
+      retryDelays: [0, 3000, 5000, 10000, 20000, 30000],
       headers: {
         authorization: `Bearer ${session.access_token}`,
         apikey: window.SUPABASE_ANON_KEY,
         "x-upsert": "true"
       },
-      uploadDataDuringCreation: true,
+      // uploadDataDuringCreation:false separa la creacion (peticion chica y rapida) de la
+      // subida de datos (PATCH por partes). Asi, si una parte falla por conexion lenta/inestable,
+      // solo se reintenta esa parte -- no todo el archivo desde cero (eso causaba que la barra
+      // llegara a un punto y "reiniciara" a 0%).
+      uploadDataDuringCreation: false,
       removeFingerprintOnSuccess: true,
       metadata: {
         bucketName: bucket,
