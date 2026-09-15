@@ -189,6 +189,29 @@
 
 <div class="container" style="max-width:860px;">
 
+  <!-- Paso 0: Inicio -- lista de materias del estudiante, estilo Google Classroom -->
+  <div id="paso-inicio" class="hidden">
+    <div style="margin-bottom:18px;">
+      <h2 style="color:var(--azul); margin:0 0 4px;" id="home-saludo">Mis materias</h2>
+      <p style="color:var(--gris); margin:0; font-size:13px;">Selecciona una materia para entrar a su Salón de Clases.</p>
+    </div>
+
+    <div id="home-notificaciones-card" class="card hidden" style="margin-bottom:20px;">
+      <h3 style="margin:0 0 10px; font-size:15px; color:var(--azul); display:flex; align-items:center; gap:6px;">
+        <span id="home-notif-icon"></span> Notificaciones recientes
+      </h3>
+      <div id="home-lista-notificaciones"></div>
+    </div>
+
+    <div id="grid-home-materias" class="materia-grid"></div>
+
+    <div style="text-align:center; margin-top:18px;">
+      <a href="clase.html?nueva=1" style="color:var(--cyan-dark); font-weight:700; font-size:13px; display:inline-flex; align-items:center; gap:6px;">
+        <span id="home-plus-icon"></span> Unirme a otra materia
+      </a>
+    </div>
+  </div>
+
   <!-- Paso 1: Pide código de materia si no vino en URL -->
   <div id="paso-pedir-codigo" class="hidden">
     <div class="card" style="max-width:440px; margin:40px auto; text-align:center;">
@@ -303,6 +326,7 @@
 <script src="js/icons.js"></script>
 <script src="js/pwa-install.js"></script>
 <script src="js/config.js"></script>
+<script src="js/colores.js"></script>
 <script>
 window.sb = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
 
@@ -339,6 +363,7 @@ function formatoFecha(f) {
 }
 
 function mostrarPaso(paso) {
+  document.getElementById("paso-inicio").classList.toggle("hidden", paso !== "inicio");
   document.getElementById("paso-pedir-codigo").classList.toggle("hidden", paso !== "pedir-codigo");
   document.getElementById("paso-elegir-estudiante").classList.toggle("hidden", paso !== "elegir-estudiante");
   document.getElementById("paso-feed").classList.toggle("hidden", paso !== "feed");
@@ -349,6 +374,8 @@ async function inicializar() {
   document.getElementById("step1-icon").innerHTML = Icon("school", 40);
   document.getElementById("step2-icon").innerHTML = Icon("user", 40);
   document.getElementById("mis-materias-icon").innerHTML = Icon("users", 14);
+  document.getElementById("home-notif-icon").innerHTML = Icon("bell", 16);
+  document.getElementById("home-plus-icon").innerHTML = Icon("plus", 14);
 
   actualizarMenuMisMaterias();
   window.addEventListener("click", (e) => {
@@ -374,13 +401,16 @@ async function inicializar() {
     return;
   }
 
-  // Si abren el ícono instalado sin código en el link, usar el último que
-  // usaron en este dispositivo (para que la app abra directo en su clase).
+  // Si NO vino un código explícito en el link (por ejemplo, abrieron el ícono
+  // instalado desde su pantalla de inicio), mostrar la pantalla "Mis materias"
+  // estilo Google Classroom con todas las materias en las que ya entró antes
+  // en este dispositivo, en vez de saltar directo a la última que usó.
   if (!codigo) {
-    codigo = localStorage.getItem("ultimo_codigo_materia");
-  }
-
-  if (!codigo) {
+    const codigosGuardados = codigosMateriasGuardados();
+    if (codigosGuardados.length > 0) {
+      await mostrarInicio(codigosGuardados);
+      return;
+    }
     mostrarPaso("pedir-codigo");
     return;
   }
@@ -445,6 +475,90 @@ async function actualizarMenuMisMaterias() {
 
 function cambiarDeMateria(codigo) {
   window.location.href = `clase.html?codigo=${encodeURIComponent(codigo)}`;
+}
+
+// --- Pantalla de inicio "Mis materias" (estilo Google Classroom) ---
+// Se muestra al abrir la app sin un código especifico en el link (por ejemplo,
+// al abrir el ícono instalado), listando todas las materias en las que el
+// estudiante ya entró antes en este dispositivo, con sus notificaciones.
+
+async function mostrarInicio(codigos) {
+  mostrarPaso("inicio");
+
+  const filas = await Promise.all(codigos.map(async (cod) => {
+    try {
+      const { data } = await window.sb.rpc("materia_por_codigo_registro", { p_codigo_registro: cod });
+      const m = data && data[0];
+      return m
+        ? { cod, id: m.id, nombre: m.nombre, periodo: m.periodo, profesor: m.profesor }
+        : { cod, id: null, nombre: cod, periodo: "", profesor: "" };
+    } catch (e) {
+      return { cod, id: null, nombre: cod, periodo: "", profesor: "" };
+    }
+  }));
+
+  const grid = document.getElementById("grid-home-materias");
+  grid.innerHTML = filas.map(f => {
+    const inicial = (f.nombre || "?").trim().charAt(0).toUpperCase();
+    const banner = f.id ? colorMateria(f.id) : "linear-gradient(135deg, #1a73e8, #185abc)";
+    const avatarColor = f.id ? colorSolidoMateria(f.id) : "#1a73e8";
+    return `
+      <div class="materia-card" onclick="cambiarDeMateria('${f.cod}')">
+        <div class="materia-card-banner" style="background:${banner};">
+          <h3>${escapeHtml(f.nombre)}</h3>
+          <div class="periodo">${escapeHtml(f.periodo || "Sin periodo definido")}</div>
+          <div class="materia-card-avatar" style="color:${avatarColor};">${escapeHtml(inicial)}</div>
+        </div>
+        <div class="materia-card-body">
+          <p class="profesor">${f.profesor ? "Prof. " + escapeHtml(f.profesor) : ""}</p>
+          <span class="materia-card-codigo">CÓDIGO: ${escapeHtml(f.cod)}</span>
+        </div>
+        <div class="materia-card-footer">
+          <span title="Entrar">${Icon("arrow-right", 18)}</span>
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  await cargarNotificacionesHome(filas);
+}
+
+async function cargarNotificacionesHome(filas) {
+  const cont = document.getElementById("home-notificaciones-card");
+  const lista = document.getElementById("home-lista-notificaciones");
+
+  const grupos = await Promise.all(filas.map(async (f) => {
+    const estId = localStorage.getItem(`clase_estudiante_${f.cod}`);
+    if (!estId) return [];
+    try {
+      const { data, error } = await window.sb.rpc("notificaciones_por_codigo_materia", {
+        p_codigo_registro: f.cod,
+        p_estudiante_id: estId
+      });
+      if (error || !data) return [];
+      return data.map(n => Object.assign({}, n, { materiaNombre: f.nombre }));
+    } catch (e) {
+      return [];
+    }
+  }));
+
+  const todas = grupos.flat().sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 8);
+
+  if (todas.length === 0) {
+    cont.classList.add("hidden");
+    return;
+  }
+  cont.classList.remove("hidden");
+  lista.innerHTML = todas.map(n => `
+    <div style="padding:9px 4px; border-bottom:1px solid var(--borde); font-size:13px; display:flex; gap:8px; align-items:flex-start;">
+      <span style="color:var(--cyan-dark); flex-shrink:0; margin-top:2px;">${Icon(ICONO_NOTIF[n.tipo] || "bell", 16)}</span>
+      <div>
+        <div style="font-weight:700; color:var(--azul);">${escapeHtml(n.titulo)} <span style="font-weight:400; color:var(--gris); font-size:11px;">· ${escapeHtml(n.materiaNombre)}</span></div>
+        ${n.cuerpo ? `<div style="color:var(--gris); margin-top:2px;">${escapeHtml(n.cuerpo)}</div>` : ""}
+        <div style="color:#9aa5b1; margin-top:3px; font-size:11px;">${tiempoRelativo(n.created_at)}</div>
+      </div>
+    </div>
+  `).join("");
 }
 
 // --- Notificaciones (campanita in-app + push real al celular/PC) ---

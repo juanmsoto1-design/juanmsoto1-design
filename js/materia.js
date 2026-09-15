@@ -330,7 +330,10 @@ function renderReporte() {
 function componentesVisiblesEnTabla() {
   // Los componentes creados automáticamente al crear una asignación (Salón de clases)
   // no deben aparecer como columnas aquí; solo los componentes de nota manuales.
-  return componentes.filter(c => !(asignaciones || []).some(a => a.componente_id === c.id));
+  // Los componentes "archivados" (eliminados desde la UI) tampoco se muestran, pero sus
+  // notas se mantienen guardadas y siguen sumando al promedio -- ver calcularNotaFinal,
+  // que recorre TODOS los componentes (activos e inactivos), no solo los visibles aqui.
+  return componentes.filter(c => c.activo !== false && !(asignaciones || []).some(a => a.componente_id === c.id));
 }
 
 // IDs de estudiantes marcados con el checkbox de la tabla, para aplicar nota masiva
@@ -725,8 +728,10 @@ async function guardarComponente(id) {
 }
 
 async function eliminarComponente(id, nombre) {
-  if (!confirm(`¿Eliminar el componente "${nombre}"? Se borrarán las notas asociadas a él.`)) return;
-  const { error } = await window.sb.from("componentes").delete().eq("id", id);
+  if (!confirm(`¿Eliminar el componente "${nombre}"? Las notas que ya pusiste ahí se mantienen guardadas y siguen contando en el promedio final -- solo desaparece de esta lista.`)) return;
+  // No se borra de verdad: se "archiva" (activo = false) para no perder las notas ya puestas,
+  // que deben seguir sumando al promedio de cada estudiante.
+  const { error } = await window.sb.from("componentes").update({ activo: false }).eq("id", id);
   if (error) {
     alert("No se pudo eliminar: " + error.message);
     return;
