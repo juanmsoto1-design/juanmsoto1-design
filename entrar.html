@@ -85,6 +85,16 @@
       <button class="btn btn-secondary" style="width:100%; margin-top:8px;" onclick="reiniciar()"><span data-icon="arrow-left" data-icon-size="15"></span> Usar otro código</button>
     </div>
 
+    <div id="paso-no-disponible" class="hidden" style="text-align:center;">
+      <div style="color:var(--azul);"><span data-icon="calendar" data-icon-size="40"></span></div>
+      <h3 id="nodisp-titulo" style="color:#16305c; margin-bottom:2px;"></h3>
+      <p style="color:#6b7280; font-size:13px; margin-top:0;" id="nodisp-materia"></p>
+      <p style="font-size:14px; background:#eaf4fc; border-radius:6px; padding:10px; color:#16305c;" id="nodisp-mensaje"></p>
+      <button class="btn btn-primary" style="width:100%;" onclick="buscarAsignacion()"><span data-icon="refresh" data-icon-size="15"></span> Actualizar</button>
+      <button class="btn btn-secondary hidden" id="btn-volver-clase-nodisp" style="width:100%; margin-top:8px;" onclick="volverClase()"><span data-icon="arrow-left" data-icon-size="15"></span> Volver al salón de clases</button>
+      <button class="btn btn-secondary" style="width:100%; margin-top:8px;" onclick="reiniciar()"><span data-icon="arrow-left" data-icon-size="15"></span> Usar otro código</button>
+    </div>
+
     <div id="paso-exito" class="hidden" style="text-align:center;">
       <div style="color:var(--verde);"><span data-icon="check-circle" data-icon-size="40"></span></div>
       <h3 style="color:#1e7a34;">¡Entrega registrada!</h3>
@@ -117,6 +127,7 @@ let palabrasActuales = [];
 function mostrarPaso(paso) {
   document.getElementById("paso-codigo").classList.toggle("hidden", paso !== "codigo");
   document.getElementById("paso-detalle").classList.toggle("hidden", paso !== "detalle");
+  document.getElementById("paso-no-disponible").classList.toggle("hidden", paso !== "no-disponible");
   document.getElementById("paso-exito").classList.toggle("hidden", paso !== "exito");
   document.getElementById("paso-posiciones").classList.toggle("hidden", paso !== "posiciones");
 }
@@ -145,6 +156,24 @@ async function buscarAsignacion() {
     return;
   }
   asignacionActual = data[0];
+
+  if (asignacionActual.disponible === false) {
+    document.getElementById("nodisp-titulo").textContent = asignacionActual.titulo || "Cuestionario";
+    document.getElementById("nodisp-materia").textContent = asignacionActual.materia_nombre || "";
+    let fechaTexto = "una fecha que definirá tu profesor";
+    if (asignacionActual.disponible_desde) {
+      const f = new Date(asignacionActual.disponible_desde);
+      fechaTexto = f.toLocaleDateString("es-DO", { day: "numeric", month: "long", year: "numeric" }) +
+        " a las " + f.toLocaleTimeString("es-DO", { hour: "2-digit", minute: "2-digit" });
+    }
+    document.getElementById("nodisp-mensaje").textContent = `Este cuestionario todavía no está disponible. Estará disponible a partir del ${fechaTexto}.`;
+
+    const matParamND = new URLSearchParams(window.location.search).get("materia");
+    document.getElementById("btn-volver-clase-nodisp").classList.toggle("hidden", !matParamND);
+
+    mostrarPaso("no-disponible");
+    return;
+  }
 
   const { data: ests, error: errEst } = await window.sb.rpc("estudiantes_por_codigo", { p_codigo: codigo });
   if (errEst || !ests) {

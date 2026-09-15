@@ -802,6 +802,10 @@ async function editarAsignacion(id) {
   document.getElementById("a-puntos").value = a.puntos != null ? a.puntos : "";
   onCambioTipoAsignacion();
 
+  document.getElementById("a-programar-apertura").checked = !!a.disponible_desde;
+  document.getElementById("bloque-fecha-apertura").classList.toggle("hidden", !a.disponible_desde);
+  document.getElementById("a-disponible-desde").value = a.disponible_desde ? isoALocalDatetime(a.disponible_desde) : "";
+
   if (a.tipo === "cuestionario") {
     const { data: preguntas } = await window.sb.from("preguntas").select("*").eq("asignacion_id", id).order("orden", { ascending: true });
     preguntasBuilder = (preguntas || []).map(p => ({
@@ -881,6 +885,18 @@ function onCambioTipoAsignacion() {
   document.getElementById("a-puntos").required = tipo !== "cuestionario";
   document.getElementById("bloque-archivo-info").classList.toggle("hidden", !TIPOS_CON_ARCHIVO.includes(tipo));
   document.getElementById("bloque-foro-info").classList.toggle("hidden", tipo !== "foro");
+  document.getElementById("bloque-programar-apertura").classList.toggle("hidden", tipo !== "cuestionario");
+  if (tipo !== "cuestionario") {
+    document.getElementById("a-programar-apertura").checked = false;
+    document.getElementById("bloque-fecha-apertura").classList.add("hidden");
+    document.getElementById("a-disponible-desde").value = "";
+  }
+}
+
+function onCambioProgramarApertura() {
+  const marcado = document.getElementById("a-programar-apertura").checked;
+  document.getElementById("bloque-fecha-apertura").classList.toggle("hidden", !marcado);
+  if (!marcado) document.getElementById("a-disponible-desde").value = "";
 }
 
 function etiquetaTipoAsignacion(tipo) {
@@ -1218,6 +1234,12 @@ function formatoFechaHora(f) {
     d.toLocaleTimeString("es-DO", { hour: "2-digit", minute: "2-digit" });
 }
 
+function isoALocalDatetime(iso) {
+  const d = new Date(iso);
+  const offsetMs = d.getTimezoneOffset() * 60000;
+  return new Date(d.getTime() - offsetMs).toISOString().slice(0, 16);
+}
+
 function renderListaAnuncios() {
   const cont = document.getElementById("lista-anuncios");
   if (!cont) return;
@@ -1348,6 +1370,7 @@ function renderListaAsignaciones() {
 
   cont.innerHTML = asignacionesOrdenadas.map(a => {
     const vencida = a.fecha_entrega && a.fecha_entrega < hoy;
+    const bloqueado = !!(a.disponible_desde && !a.abierto_manual && new Date(a.disponible_desde) > new Date());
     const link = enlaceEntrega(a.codigo_acceso);
     const et = etiquetaTipoAsignacion(a.tipo);
 
@@ -1371,10 +1394,12 @@ function renderListaAsignaciones() {
             </span>
             <span style="font-size:12px; color:var(--gris); font-weight:700;">Vale ${a.puntos} pts</span>
             ${vencida ? `<span class="status-badge status-vencida">${Icon("alert-triangle")} Vencida</span>` : ""}
+            ${bloqueado ? `<span class="status-badge" style="background:#fff3cd; color:#8a6400;">${Icon("calendar")} Programado: abre ${formatoFechaHora(a.disponible_desde)}</span>` : ""}
           </div>
           <h3 class="asig-title" style="cursor:pointer;" onclick="toggleEntregas('${a.id}')">${escapeHtml(a.titulo)}</h3>
         </div>
         <div style="display:flex; align-items:center; gap:8px;">
+          ${bloqueado ? `<button class="btn btn-primary" style="padding:6px 12px; font-size:12px; font-weight:700;" onclick="abrirAsignacionAhora('${a.id}')">${Icon("check")} Abrir ahora</button>` : ""}
           <button class="btn btn-secondary" style="padding:6px 12px; font-size:12px; font-weight:700;" onclick="toggleEntregas('${a.id}')">
             ${Icon("users")} Entregas (${entregaronCount})
           </button>
@@ -1886,6 +1911,16 @@ function abrirReporteFinal() {
   `;
 }
 
+async function abrirAsignacionAhora(id) {
+  if (!confirm("¿Abrir este cuestionario ahora mismo para todos los estudiantes, antes de la hora programada?")) return;
+  const { error } = await window.sb.from("asignaciones").update({ abierto_manual: true }).eq("id", id);
+  if (error) {
+    alert("No se pudo abrir: " + error.message);
+    return;
+  }
+  await cargarTodo();
+}
+
 async function eliminarAsignacion(id) {
   if (!confirm("¿Eliminar esta asignación? También se eliminará el componente de nota asociado (y las puntuaciones ya sumadas por esta tarea).")) return;
   const asignacion = asignaciones.find(a => a.id === id);
@@ -2228,8 +2263,16 @@ document.addEventListener("DOMContentLoaded", () => {
     const fecha_entrega = document.getElementById("a-fecha-entrega").value || null;
     const hora_entrega = document.getElementById("a-hora-entrega").value || null;
     const requiere_archivo = TIPOS_CON_ARCHIVO.includes(tipoAsignacion);
+    const programarApertura = tipoAsignacion === "cuestionario" && document.getElementById("a-programar-apertura").checked;
+    const valorFechaApertura = document.getElementById("a-disponible-desde").value;
     const errorEl = document.getElementById("asignacion-error");
     errorEl.textContent = "";
+
+    if (programarApertura && !valorFechaApertura) {
+      errorEl.textContent = "Escoge la fecha y hora en que se abrirá el cuestionario, o desmarca la casilla de programar apertura.";
+      return;
+    }
+    const disponible_desde = programarApertura ? new Date(valorFechaApertura).toISOString() : null;
 
     let puntos;
     if (tipoAsignacion === "cuestionario") {
@@ -2306,7 +2349,8 @@ document.addEventListener("DOMContentLoaded", () => {
       // 2) actualizar la asignación (el código de acceso NO cambia)
       const { data: asigActualizada, error: errAsig } = await window.sb.from("asignaciones").update({
         titulo, descripcion, fecha_asignada, fecha_entrega, hora_entrega,
-        puntos, tipo: tipoAsignacion, requiere_archivo
+        puntos, tipo: tipoAsignacion, requiere_archivo,
+        disponible_desde, abierto_manual: false
       }).eq("id", asignacionEditandoId).select().single();
       if (errAsig) {
         errorEl.textContent = "Error: " + errAsig.message;
@@ -2391,7 +2435,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const resp = await window.sb.from("asignaciones").insert({
           materia_id: materiaId, titulo, descripcion, fecha_asignada, fecha_entrega, hora_entrega,
           creado_por: user.id, codigo_acceso: codigo, puntos, componente_id: comp.id, tipo: tipoAsignacion,
-          requiere_archivo
+          requiere_archivo, disponible_desde
         }).select().single();
         error = resp.error;
         if (!error) { asignacionCreada = resp.data; break; }

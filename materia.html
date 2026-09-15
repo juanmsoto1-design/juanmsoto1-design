@@ -206,6 +206,19 @@
         <button type="button" class="btn btn-secondary" style="margin-bottom:14px;" onclick="agregarPreguntaBuilder()">+ Agregar pregunta</button>
       </div>
 
+      <!-- Apertura programada del cuestionario -->
+      <div id="bloque-programar-apertura" class="hidden" style="background:#f5f7fa; border:1px solid var(--borde); border-radius:8px; padding:12px; margin-bottom:14px;">
+        <label style="display:flex; align-items:center; gap:8px; font-weight:600; margin-bottom:0;">
+          <input type="checkbox" id="a-programar-apertura" onchange="onCambioProgramarApertura()" style="width:auto; margin:0;" />
+          <span><span data-icon="calendar" data-icon-size="14"></span> Programar la apertura para una fecha y hora específica</span>
+        </label>
+        <div id="bloque-fecha-apertura" class="hidden" style="margin-top:10px;">
+          <label for="a-disponible-desde">Los estudiantes podrán ver y responder el cuestionario a partir de:</label>
+          <input id="a-disponible-desde" type="datetime-local" />
+          <p style="color:#6b7280; font-size:12px; margin-top:-8px;">Puedes crear el cuestionario ya mismo: queda guardado con su código, pero no le aparecerá a los estudiantes hasta esta fecha y hora. Si necesitas abrirlo antes, puedes hacerlo manualmente con el botón "Abrir ahora" desde "Trabajo de clase".</p>
+        </div>
+      </div>
+
       <!-- Constructor de palabras/verbos para asignaciones tipo vocabulario (idiomas bíblicos) -->
       <div id="bloque-vocabulario" class="hidden">
         <p style="color:#6b7280; font-size:13px; margin-top:-4px;">Agrega cada palabra o verbo en el idioma original (griego, hebreo, etc.) con su traducción de referencia. El estudiante verá solo la palabra original y escribirá su traducción; tú calificarás cada una manualmente.</p>
