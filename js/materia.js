@@ -1636,6 +1636,28 @@ function suscribirRealtime() {
     .subscribe();
 }
 
+// Quita acentos y normaliza a minúsculas para comparar encabezados sin
+// importar mayúsculas/tildes (ej: "Matrícula" vs "MATRICULA").
+function normalizarTextoExcel(s) {
+  return String(s === undefined || s === null ? "" : s)
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .trim().toLowerCase();
+}
+
+// Detecta si un texto es basura del encabezado institucional del "Pase de
+// Lista" de UNAD (nombre de universidad, dirección, fila TOTAL, etc.) para
+// no importarlo como si fuera un estudiante.
+function esFilaBasuraExcel(txt) {
+  const t = normalizarTextoExcel(txt);
+  if (!t) return true;
+  if (t === "total") return true;
+  if (t.startsWith("universidad")) return true;
+  if (t.startsWith("autopista") || t.includes("tel:") || t.includes("| tel")) return true;
+  if (t.startsWith("total alumnos")) return true;
+  if (t === "materia:" || t === "maestro:" || t === "dia:" || t === "no." || t === "matricula" || t === "estudiante") return true;
+  return false;
+}
+
 function parseExcelEstudiantes(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -1645,32 +1667,80 @@ function parseExcelEstudiantes(file) {
         const ws = wb.Sheets[wb.SheetNames[0]];
         const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
         const registros = [];
-        rows.forEach(row => {
-          if (!row || row.length === 0) return;
-          let nombre = null;
-          let nombreIdx = -1;
-          // Toma la última celda no vacía de la fila que parezca texto (nombre)
-          for (let i = row.length - 1; i >= 0; i--) {
-            const val = row[i];
-            if (typeof val === "string" && val.trim().length > 1 && isNaN(Number(val))) {
-              nombre = val.trim();
-              nombreIdx = i;
-              break;
-            }
+
+        // 1) Buscar la fila real de encabezados (No. / Matrícula / Estudiante),
+        // típica del "Pase de Lista" de UNAD, para no confundir el encabezado
+        // institucional (universidad, dirección, materia, profesor, etc.)
+        // con estudiantes.
+        let idxHeader = -1;
+        let colNombre = -1;
+        let colMatricula = -1;
+        for (let r = 0; r < rows.length; r++) {
+          const row = rows[r] || [];
+          let cNombre = -1, cMatricula = -1;
+          row.forEach((val, i) => {
+            const t = normalizarTextoExcel(val);
+            if (cNombre === -1 && (t === "estudiante" || t === "nombre" || t === "nombre completo" || t === "nombre del estudiante")) cNombre = i;
+            if (cMatricula === -1 && (t === "matricula" || t === "no. matricula" || t === "cedula" || t === "id estudiante")) cMatricula = i;
+          });
+          if (cNombre !== -1) {
+            idxHeader = r;
+            colNombre = cNombre;
+            colMatricula = cMatricula;
+            break;
           }
-          if (!nombre) return;
-          // Matrícula: la primera celda no vacía de la fila que no sea la del nombre
-          let matricula = null;
-          for (let i = 0; i < row.length; i++) {
-            if (i === nombreIdx) continue;
-            const val = row[i];
-            if (val !== undefined && val !== null && String(val).trim() !== "") {
-              matricula = String(val).trim();
-              break;
+        }
+
+        if (idxHeader !== -1) {
+          // Formato con encabezados reconocidos: solo se leen las filas
+          // después del encabezado real, usando exactamente esas columnas.
+          for (let r = idxHeader + 1; r < rows.length; r++) {
+            const row = rows[r] || [];
+            const nombreRaw = row[colNombre];
+            if (nombreRaw === undefined || nombreRaw === null || String(nombreRaw).trim() === "") continue;
+            const nombre = String(nombreRaw).trim();
+            if (esFilaBasuraExcel(nombre)) continue;
+
+            let matricula = null;
+            if (colMatricula !== -1) {
+              const mRaw = row[colMatricula];
+              if (mRaw !== undefined && mRaw !== null && String(mRaw).trim() !== "") {
+                matricula = String(mRaw).trim();
+              }
             }
+            registros.push({ nombre, matricula });
           }
-          registros.push({ nombre, matricula });
-        });
+        } else {
+          // Sin encabezados reconocibles: heurística genérica anterior, con
+          // filtro adicional para descartar encabezados institucionales.
+          rows.forEach(row => {
+            if (!row || row.length === 0) return;
+            let nombre = null;
+            let nombreIdx = -1;
+            // Toma la última celda no vacía de la fila que parezca texto (nombre)
+            for (let i = row.length - 1; i >= 0; i--) {
+              const val = row[i];
+              if (typeof val === "string" && val.trim().length > 1 && isNaN(Number(val))) {
+                nombre = val.trim();
+                nombreIdx = i;
+                break;
+              }
+            }
+            if (!nombre || esFilaBasuraExcel(nombre)) return;
+            // Matrícula: la primera celda no vacía de la fila que no sea la del nombre
+            let matricula = null;
+            for (let i = 0; i < row.length; i++) {
+              if (i === nombreIdx) continue;
+              const val = row[i];
+              if (val !== undefined && val !== null && String(val).trim() !== "") {
+                matricula = String(val).trim();
+                break;
+              }
+            }
+            registros.push({ nombre, matricula });
+          });
+        }
+
         resolve(registros);
       } catch (err) {
         reject(err);

@@ -11,8 +11,8 @@ async function init() {
     document.getElementById("btn-admin").classList.remove("hidden");
   }
 
-  const primerNombre = (miPerfil.full_name || "").trim().split(/\s+/)[0] || "";
-  document.getElementById("saludo-titulo").textContent = primerNombre ? `Hola, ${primerNombre}` : "Mis materias";
+  const nombreParaSaludo = nombreCortoParaSaludo(miPerfil.full_name);
+  document.getElementById("saludo-titulo").textContent = nombreParaSaludo ? `Hola, ${nombreParaSaludo}` : "Mis materias";
   document.getElementById("saludo-sub").textContent =
     new Date().toLocaleDateString("es-DO", { weekday: "long", day: "numeric", month: "long" });
 
@@ -155,6 +155,18 @@ function escapeHtml(str) {
   return String(str).replace(/[&<>"']/g, c => ({
     "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
   }[c]));
+}
+
+// Si el nombre empieza con un título (Pr., Dr., Lic., etc.), lo incluye
+// junto con el siguiente nombre para que el saludo no diga solo "Hola, Pr.".
+function nombreCortoParaSaludo(fullName) {
+  const partes = (fullName || "").trim().split(/\s+/).filter(Boolean);
+  if (partes.length === 0) return "";
+  const TITULOS = ["pr.", "pr", "pastor", "dr.", "dra.", "lic.", "lcda.", "ing.", "rev.", "prof.", "profa."];
+  if (partes.length > 1 && TITULOS.includes(partes[0].toLowerCase())) {
+    return partes[0] + " " + partes[1];
+  }
+  return partes[0];
 }
 
 function etiquetaRol(role) {
