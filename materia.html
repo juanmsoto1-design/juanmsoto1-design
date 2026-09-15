@@ -8,6 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tus-js-client@4/dist/tus.min.js"></script>
 </head>
 <body>
 <div class="app-shell">
@@ -246,6 +247,12 @@
       <textarea id="mat-descripcion" rows="2" style="width:100%; padding:10px 12px; border:1px solid var(--borde); border-radius:6px; font-size:14px; margin-bottom:14px; font-family:inherit; resize:vertical;" placeholder="Breve nota para tus estudiantes"></textarea>
 
       <div class="error-msg" id="material-error"></div>
+      <div id="material-progreso-wrap" class="hidden" style="margin-bottom:14px;">
+        <div style="background:var(--azul-claro); border-radius:999px; height:8px; overflow:hidden;">
+          <div id="material-progreso-barra" style="background:var(--cyan); height:100%; width:0%; transition:width .2s;"></div>
+        </div>
+        <div id="material-progreso-texto" style="font-size:12px; color:var(--gris); margin-top:4px;">Subiendo... 0%</div>
+      </div>
       <div style="display:flex; gap:8px; justify-content:flex-end">
         <button type="button" class="btn btn-secondary" onclick="cerrarModal('modal-material')">Cancelar</button>
         <button type="submit" class="btn btn-primary" id="btn-guardar-material">Subir material</button>

@@ -914,6 +914,51 @@ function nombreArchivoSeguro(nombre) {
   return (baseSeguro || "archivo") + ext.toLowerCase();
 }
 
+// Sube un archivo a Supabase Storage usando el protocolo TUS (resumible),
+// recomendado por Supabase para archivos mayores a 6MB: sube por partes,
+// reintenta solo (retryDelays) si hay problemas de red, y permite mostrar
+// el progreso real en pantalla en vez de una carga "a ciegas".
+async function subirArchivoConProgreso(bucket, ruta, file, onProgreso) {
+  const { data: { session } } = await window.sb.auth.getSession();
+  if (!session) throw new Error("Tu sesión expiró, vuelve a iniciar sesión.");
+
+  const projectId = new URL(window.SUPABASE_URL).hostname.split(".")[0];
+
+  return new Promise((resolve, reject) => {
+    const upload = new tus.Upload(file, {
+      endpoint: `https://${projectId}.storage.supabase.co/storage/v1/upload/resumable`,
+      retryDelays: [0, 3000, 5000, 10000, 20000],
+      headers: {
+        authorization: `Bearer ${session.access_token}`,
+        apikey: window.SUPABASE_ANON_KEY,
+        "x-upsert": "true"
+      },
+      uploadDataDuringCreation: true,
+      removeFingerprintOnSuccess: true,
+      metadata: {
+        bucketName: bucket,
+        objectName: ruta,
+        contentType: file.type || "application/octet-stream",
+        cacheControl: "3600"
+      },
+      chunkSize: 6 * 1024 * 1024, // Obligatorio: Supabase solo acepta 6MB por parte
+      onError: (error) => reject(error),
+      onProgress: (bytesSubidos, bytesTotal) => {
+        if (onProgreso) {
+          const pct = Math.round((bytesSubidos / bytesTotal) * 100);
+          onProgreso(pct);
+        }
+      },
+      onSuccess: () => resolve()
+    });
+
+    upload.findPreviousUploads().then((previos) => {
+      if (previos.length) upload.resumeFromPreviousUpload(previos[0]);
+      upload.start();
+    });
+  });
+}
+
 function onCambioTipoMaterial() {
   const tipo = document.getElementById("mat-tipo").value;
   document.getElementById("bloque-material-archivo").classList.toggle("hidden", tipo !== "archivo");
@@ -1842,6 +1887,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const btn = document.getElementById("btn-guardar-material");
     btn.disabled = true;
     btn.textContent = "Subiendo...";
+    const progresoWrap = document.getElementById("material-progreso-wrap");
+    const progresoBarra = document.getElementById("material-progreso-barra");
+    const progresoTexto = document.getElementById("material-progreso-texto");
+    progresoWrap.classList.add("hidden");
+    progresoBarra.style.width = "0%";
 
     try {
       if (tipo === "enlace") {
@@ -1875,8 +1925,17 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         const nombreSeguro = nombreArchivoSeguro(file.name);
         const ruta = `${materiaId}/${Date.now()}-${nombreSeguro}`;
-        const { error: errSubida } = await window.sb.storage.from("materiales-clase").upload(ruta, file, { upsert: true, cacheControl: "3600" });
-        if (errSubida) { errorEl.textContent = "No se pudo subir el archivo: " + errSubida.message; return; }
+        progresoWrap.classList.remove("hidden");
+        try {
+          await subirArchivoConProgreso("materiales-clase", ruta, file, (pct) => {
+            progresoBarra.style.width = pct + "%";
+            progresoTexto.textContent = `Subiendo... ${pct}%`;
+            btn.textContent = `Subiendo... ${pct}%`;
+          });
+        } catch (errSubida) {
+          errorEl.textContent = "No se pudo subir el archivo: " + (errSubida && errSubida.message ? errSubida.message : errSubida);
+          return;
+        }
         const { data: urlData } = window.sb.storage.from("materiales-clase").getPublicUrl(ruta);
         const { error } = await window.sb.from("materiales").insert({
           materia_id: materiaId, tipo: "archivo", titulo, descripcion, categoria,
@@ -1894,6 +1953,7 @@ document.addEventListener("DOMContentLoaded", () => {
     } finally {
       btn.disabled = false;
       btn.textContent = "Subir material";
+      progresoWrap.classList.add("hidden");
     }
   });
 
