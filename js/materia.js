@@ -263,9 +263,12 @@ function renderAlertaRiesgo() {
       est,
       notaFinal,
       componentesFaltantes,
-      // solo se marca "reprobando" si ya tiene al menos un componente calificado;
-      // un estudiante recien importado (sin ninguna nota aun) no debe aparecer como en riesgo
-      reprobando: componentesFaltantes < componentes.length && notaFinal < 70,
+      // "reprobando" (nota final ya definitiva y por debajo del minimo) solo aplica cuando
+      // TODOS los componentes ya tienen calificacion. Mientras falten componentes por calificar,
+      // usamos enRiesgoDeNoAlcanzar (que ya calcula si, aun sacando el maximo en lo que falta,
+      // no le alcanzaria) -- asi no se marca en riesgo a alguien que solo tiene 1 de varios
+      // componentes calificado y por eso su nota parcial se ve baja.
+      reprobando: componentesFaltantes === 0 && notaFinal < 70,
       enRiesgoDeNoAlcanzar
     };
   }).filter(x => x.reprobando || x.enRiesgoDeNoAlcanzar);
@@ -330,14 +333,20 @@ function componentesVisiblesEnTabla() {
   return componentes.filter(c => !(asignaciones || []).some(a => a.componente_id === c.id));
 }
 
+// IDs de estudiantes marcados con el checkbox de la tabla, para aplicar nota masiva
+// "a seleccionados". Se mantiene entre re-renders de la tabla.
+let estudiantesSeleccionadosMasivo = new Set();
+
 function renderTabla() {
   const thead = document.getElementById("thead-row");
   const tbody = document.getElementById("tbody-notas");
   const emptyState = document.getElementById("empty-state");
+  const bulkCard = document.getElementById("bulk-notas-card");
   const componentesTabla = componentesVisiblesEnTabla();
 
   if (estudiantes.length === 0 && componentesTabla.length === 0) {
     document.getElementById("tabla-notas").classList.add("hidden");
+    if (bulkCard) bulkCard.classList.add("hidden");
     emptyState.classList.remove("hidden");
     emptyState.textContent = "Agrega componentes de nota (ej: Quizz, Participación) y estudiantes para comenzar. Las asignaciones se crean y califican en \"Salón de clases\".";
     return;
@@ -345,7 +354,18 @@ function renderTabla() {
   document.getElementById("tabla-notas").classList.remove("hidden");
   emptyState.classList.add("hidden");
 
+  // quita de la seleccion cualquier estudiante que ya no exista
+  const idsActuales = new Set(estudiantes.map(e => e.id));
+  estudiantesSeleccionadosMasivo.forEach(id => { if (!idsActuales.has(id)) estudiantesSeleccionadosMasivo.delete(id); });
+
+  if (bulkCard) {
+    const hayDatos = estudiantes.length > 0 && componentesTabla.length > 0;
+    bulkCard.classList.toggle("hidden", !hayDatos);
+    if (hayDatos) renderSelectorComponenteMasivo(componentesTabla);
+  }
+
   thead.innerHTML = `
+    <th><input type="checkbox" id="chk-todos" title="Seleccionar todos" onchange="toggleSeleccionarTodos(this)" /></th>
     <th class="nombre">No. / Estudiante</th>
     ${componentesTabla.map(c => `<th>${escapeHtml(c.nombre)}<br><small>(${c.puntos_max} pts)</small></th>`).join("")}
     <th>Nota Final</th>
@@ -361,8 +381,10 @@ function renderTabla() {
     const notaFinal = calcularNotaFinal(est.id);
     const status = notaFinal >= 70 ? "Aprobado" : "Reprobado";
     const clasificacion = calcularClasificacion(notaFinal);
+    const marcado = estudiantesSeleccionadosMasivo.has(est.id);
 
     fila.innerHTML = `
+      <td><input type="checkbox" class="chk-estudiante" data-estudiante="${est.id}" ${marcado ? "checked" : ""} onchange="onCambioSeleccionEstudiante(this)" /></td>
       <td class="nombre">${est.no_orden}. ${escapeHtml(est.nombre)}</td>
       ${componentesTabla.map(c => `
         <td>
@@ -382,6 +404,103 @@ function renderTabla() {
   document.querySelectorAll(".celda-nota").forEach(input => {
     input.addEventListener("change", onCambioNota);
   });
+
+  actualizarContadorSeleccionados();
+}
+
+function renderSelectorComponenteMasivo(componentesTabla) {
+  const sel = document.getElementById("bulk-componente");
+  if (!sel) return;
+  const valorPrevio = sel.value;
+  sel.innerHTML = componentesTabla.map(c => `<option value="${c.id}">${escapeHtml(c.nombre)} (${c.puntos_max} pts)</option>`).join("");
+  if (componentesTabla.some(c => c.id === valorPrevio)) sel.value = valorPrevio;
+}
+
+function toggleSeleccionarTodos(chkTodos) {
+  document.querySelectorAll(".chk-estudiante").forEach(chk => {
+    chk.checked = chkTodos.checked;
+    const id = chk.dataset.estudiante;
+    if (chkTodos.checked) estudiantesSeleccionadosMasivo.add(id);
+    else estudiantesSeleccionadosMasivo.delete(id);
+  });
+  actualizarContadorSeleccionados();
+}
+
+function onCambioSeleccionEstudiante(chk) {
+  const id = chk.dataset.estudiante;
+  if (chk.checked) estudiantesSeleccionadosMasivo.add(id);
+  else estudiantesSeleccionadosMasivo.delete(id);
+  actualizarContadorSeleccionados();
+}
+
+function actualizarContadorSeleccionados() {
+  const span = document.getElementById("bulk-contador-sel");
+  if (span) span.textContent = String(estudiantesSeleccionadosMasivo.size);
+  const chkTodos = document.getElementById("chk-todos");
+  const chks = document.querySelectorAll(".chk-estudiante");
+  if (chkTodos) chkTodos.checked = chks.length > 0 && estudiantesSeleccionadosMasivo.size === chks.length;
+}
+
+async function aplicarNotaMasiva(modo) {
+  const errorEl = document.getElementById("bulk-notas-error");
+  errorEl.textContent = "";
+
+  const componenteId = document.getElementById("bulk-componente").value;
+  const componente = componentes.find(c => c.id === componenteId);
+  if (!componente) { errorEl.textContent = "Selecciona un componente."; return; }
+
+  const valorStr = document.getElementById("bulk-valor").value;
+  if (valorStr === "") { errorEl.textContent = "Escribe el valor a aplicar."; return; }
+  const valor = parseFloat(valorStr);
+  if (isNaN(valor) || valor < 0 || valor > Number(componente.puntos_max)) {
+    errorEl.textContent = `El valor debe estar entre 0 y ${componente.puntos_max}.`;
+    return;
+  }
+
+  let objetivo;
+  if (modo === "todos") {
+    objetivo = estudiantes.slice();
+  } else {
+    objetivo = estudiantes.filter(e => estudiantesSeleccionadosMasivo.has(e.id));
+    if (objetivo.length === 0) { errorEl.textContent = "Selecciona al menos un estudiante."; return; }
+  }
+
+  const confirmMsg = modo === "todos"
+    ? `¿Poner ${valor} en "${componente.nombre}" a los ${objetivo.length} estudiante(s) de la lista? Esto solo afecta ese componente; no toca los demás ni el promedio de otros componentes.`
+    : `¿Poner ${valor} en "${componente.nombre}" a los ${objetivo.length} estudiante(s) seleccionado(s)? Esto solo afecta ese componente.`;
+  if (!confirm(confirmMsg)) return;
+
+  const indicador = document.getElementById("saving-indicator");
+  indicador.textContent = "Guardando...";
+
+  const filas = objetivo.map(est => ({ estudiante_id: est.id, componente_id: componenteId, valor }));
+  const { error } = await window.sb.from("calificaciones").upsert(filas, { onConflict: "estudiante_id,componente_id" });
+
+  if (error) {
+    indicador.textContent = "";
+    errorEl.textContent = "Error: " + error.message;
+    return;
+  }
+
+  objetivo.forEach(est => {
+    if (!calificaciones[est.id]) calificaciones[est.id] = {};
+    calificaciones[est.id][componenteId] = valor;
+  });
+
+  renderTabla();
+  renderReporte();
+  renderAlertaRiesgo();
+
+  indicador.textContent = "Guardado";
+  setTimeout(() => { if (indicador.textContent === "Guardado") indicador.textContent = ""; }, 1500);
+
+  await Promise.all(objetivo.map(est => crearNotificacion({
+    estudianteId: est.id,
+    tipo: "calificacion",
+    titulo: "Nueva calificación",
+    cuerpo: "Tu profesor actualizó una de tus notas.",
+    url: enlaceClase(materia.codigo_registro)
+  })));
 }
 
 async function onCambioNota(e) {

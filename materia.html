@@ -41,6 +41,15 @@
       <div><strong id="rep-porcentaje">0%</strong><br><small style="color:#6b7280">% Aprobación</small></div>
     </div>
 
+    <div id="bulk-notas-card" class="card hidden" style="display:flex; flex-wrap:wrap; gap:10px; align-items:center;">
+      <strong style="font-size:13px; color:var(--gris); white-space:nowrap;">Poner nota masiva:</strong>
+      <select id="bulk-componente" style="max-width:220px;"></select>
+      <input type="number" step="0.01" id="bulk-valor" placeholder="Valor" style="max-width:100px;" />
+      <button type="button" class="btn btn-secondary" style="padding:6px 12px; font-size:13px;" onclick="aplicarNotaMasiva('todos')">Aplicar a todos</button>
+      <button type="button" class="btn btn-secondary" style="padding:6px 12px; font-size:13px;" onclick="aplicarNotaMasiva('seleccionados')">Aplicar a seleccionados (<span id="bulk-contador-sel">0</span>)</button>
+      <span id="bulk-notas-error" class="error-msg"></span>
+    </div>
+
     <div class="table-scroll">
       <table id="tabla-notas">
         <thead><tr id="thead-row"></tr></thead>
