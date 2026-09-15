@@ -880,6 +880,7 @@ function onCambioTipoAsignacion() {
   document.getElementById("bloque-puntos-libre").classList.toggle("hidden", tipo === "cuestionario");
   document.getElementById("a-puntos").required = tipo !== "cuestionario";
   document.getElementById("bloque-archivo-info").classList.toggle("hidden", !TIPOS_CON_ARCHIVO.includes(tipo));
+  document.getElementById("bloque-foro-info").classList.toggle("hidden", tipo !== "foro");
 }
 
 function etiquetaTipoAsignacion(tipo) {
@@ -890,7 +891,8 @@ function etiquetaTipoAsignacion(tipo) {
     reporte_lectura: { icono: "book-open", texto: "Reporte de lectura" },
     exegesis: { icono: "file-text", texto: "Exégesis" },
     presentacion: { icono: "mic", texto: "Presentación PPT" },
-    vocabulario: { icono: "type", texto: "Vocabulario/Verbos" }
+    vocabulario: { icono: "type", texto: "Vocabulario/Verbos" },
+    foro: { icono: "message-circle", texto: "Foro de discusión" }
   };
   return mapa[tipo] || { icono: "pin", texto: tipo };
 }
@@ -1431,6 +1433,9 @@ async function toggleEntregas(asignacionId) {
   if (asignacion && asignacion.tipo === "vocabulario") {
     return toggleEntregasVocabulario(asignacionId, asignacion);
   }
+  if (asignacion && asignacion.tipo === "foro") {
+    return toggleEntregasForo(asignacionId, asignacion);
+  }
 
   const cont = document.getElementById(`entregas-${asignacionId}`);
   if (!cont.classList.contains("hidden")) {
@@ -1611,6 +1616,90 @@ async function guardarVocabularioEstudiante(entregaId, estudianteId, componenteI
 
   await cargarTodo();
   alert("Calificación guardada y sumada a la nota del estudiante.");
+}
+
+async function toggleEntregasForo(asignacionId, asignacion) {
+  const cont = document.getElementById(`entregas-${asignacionId}`);
+  if (!cont.classList.contains("hidden")) {
+    cont.classList.add("hidden");
+    return;
+  }
+  cont.classList.remove("hidden");
+  cont.innerHTML = `<p style="font-size:12px; color:#6b7280;">Cargando el foro...</p>`;
+
+  const [{ data: comentarios, error: errCom }, { data: entregas, error: errEnt }] = await Promise.all([
+    window.sb.from("foro_comentarios").select("*, estudiantes(nombre, no_orden)").eq("asignacion_id", asignacionId).order("created_at", { ascending: true }),
+    window.sb.from("entregas").select("*, estudiantes(nombre, no_orden)").eq("asignacion_id", asignacionId).order("fecha_entrega", { ascending: true })
+  ]);
+
+  if (errCom || errEnt) {
+    cont.innerHTML = `<p style="color:#b3261e; font-size:12px;">Error: ${escapeHtml((errCom || errEnt).message)}</p>`;
+    return;
+  }
+
+  const raiz = (comentarios || []).filter(c => !c.parent_comentario_id);
+  const respuestasPorPadre = {};
+  (comentarios || []).forEach(c => {
+    if (c.parent_comentario_id) {
+      (respuestasPorPadre[c.parent_comentario_id] = respuestasPorPadre[c.parent_comentario_id] || []).push(c);
+    }
+  });
+
+  const hiloHtml = raiz.length === 0
+    ? `<p style="font-size:12px; color:#6b7280;">Nadie ha comentado todavía.</p>`
+    : raiz.map(c => `
+        <div style="background:#f8f9fa; border-radius:8px; padding:8px 10px; margin-bottom:8px;">
+          <div style="font-size:12px; font-weight:700; color:var(--azul);">${escapeHtml(c.estudiantes ? c.estudiantes.nombre : (c.autor_nombre || "—"))}</div>
+          <div style="font-size:13px; white-space:pre-wrap;">${escapeHtml(c.texto)}</div>
+          ${(respuestasPorPadre[c.id] || []).map(r => `
+            <div style="margin:8px 0 0 18px; border-left:2px solid #dfe3e8; padding-left:8px;">
+              <div style="font-size:11.5px; font-weight:700; color:var(--cyan-dark);">${escapeHtml(r.estudiantes ? r.estudiantes.nombre : (r.autor_nombre || "—"))}</div>
+              <div style="font-size:12.5px; white-space:pre-wrap;">${escapeHtml(r.texto)}</div>
+            </div>
+          `).join("")}
+        </div>
+      `).join("");
+
+  const entregaronIds = new Set((entregas || []).map(e => e.estudiante_id));
+  const noParticiparon = estudiantes.filter(est => !entregaronIds.has(est.id));
+
+  const tablaHtml = (!entregas || entregas.length === 0) ? "" : `
+    <table style="font-size:12px; margin-top:10px;">
+      <thead><tr><th class="nombre">Estudiante</th><th>Comentarios</th><th>Puntuación (máx ${asignacion.puntos})</th></tr></thead>
+      <tbody>
+        ${entregas.map(e => `
+          <tr>
+            <td class="nombre">${escapeHtml(e.estudiantes ? e.estudiantes.nombre : "—")}</td>
+            <td>${e.intentos || 1}</td>
+            <td>
+              <div style="display:flex; gap:4px; justify-content:center;">
+                <input type="number" step="0.01" min="0" max="${asignacion.puntos}"
+                  value="${e.puntuacion !== null && e.puntuacion !== undefined ? e.puntuacion : ""}"
+                  style="margin:0; width:60px;" id="pt-${e.id}" />
+                <button class="btn btn-secondary" style="padding:2px 8px; font-size:11px;"
+                  onclick="calificarEntrega('${e.id}', '${e.estudiante_id}', '${asignacion.componente_id}')">Guardar</button>
+              </div>
+            </td>
+          </tr>
+        `).join("")}
+      </tbody>
+    </table>`;
+
+  cont.innerHTML = `
+    <div style="margin-bottom:10px;">
+      <strong style="font-size:12px; color:var(--azul);">Hilo de discusión:</strong>
+      <div style="margin-top:6px;">${hiloHtml}</div>
+    </div>
+    ${tablaHtml}
+    <div style="margin-top:10px;">
+      <strong style="font-size:12px; color:#b3261e;">No han participado (${noParticiparon.length}):</strong>
+      ${noParticiparon.length === 0
+        ? `<p style="font-size:12px; color:#1e7a34;">${Icon("check")} Todos participaron</p>`
+        : `<ul style="font-size:12px; color:#b3261e; margin:6px 0 0 18px; padding:0;">
+             ${noParticiparon.map(e => `<li>${escapeHtml(e.nombre)}</li>`).join("")}
+           </ul>`}
+    </div>
+  `;
 }
 
 async function calificarEntrega(entregaId, estudianteId, componenteId) {
