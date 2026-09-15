@@ -330,10 +330,19 @@ function renderReporte() {
 function componentesVisiblesEnTabla() {
   // Los componentes creados automáticamente al crear una asignación (Salón de clases)
   // no deben aparecer como columnas aquí; solo los componentes de nota manuales.
-  // Los componentes "archivados" (eliminados desde la UI) tampoco se muestran, pero sus
-  // notas se mantienen guardadas y siguen sumando al promedio -- ver calcularNotaFinal,
-  // que recorre TODOS los componentes (activos e inactivos), no solo los visibles aqui.
-  return componentes.filter(c => c.activo !== false && !(asignaciones || []).some(a => a.componente_id === c.id));
+  // OJO: esto incluye a propósito los componentes ya "eliminados" (activo = false).
+  // Al eliminar un componente no se borra su columna ni sus notas de la tabla de
+  // Calificaciones -- eso es el historial de la materia y debe quedarse visible para
+  // siempre, tal como estaba. Lo único que cambia al eliminarlo es que deja de aparecer
+  // en "Componentes de nota" (para editar/renombrar) y en el selector de nota masiva
+  // -- ver componentesGestionables().
+  return componentes.filter(c => !(asignaciones || []).some(a => a.componente_id === c.id));
+}
+
+function componentesGestionables() {
+  // Solo los componentes manuales que siguen activos (no eliminados). Se usa para la
+  // lista de "Componentes de nota" (crear/editar/eliminar) y el selector de nota masiva.
+  return componentesVisiblesEnTabla().filter(c => c.activo !== false);
 }
 
 // IDs de estudiantes marcados con el checkbox de la tabla, para aplicar nota masiva
@@ -361,16 +370,17 @@ function renderTabla() {
   const idsActuales = new Set(estudiantes.map(e => e.id));
   estudiantesSeleccionadosMasivo.forEach(id => { if (!idsActuales.has(id)) estudiantesSeleccionadosMasivo.delete(id); });
 
+  const componentesActivos = componentesGestionables();
   if (bulkCard) {
-    const hayDatos = estudiantes.length > 0 && componentesTabla.length > 0;
+    const hayDatos = estudiantes.length > 0 && componentesActivos.length > 0;
     bulkCard.classList.toggle("hidden", !hayDatos);
-    if (hayDatos) renderSelectorComponenteMasivo(componentesTabla);
+    if (hayDatos) renderSelectorComponenteMasivo(componentesActivos);
   }
 
   thead.innerHTML = `
     <th><input type="checkbox" id="chk-todos" title="Seleccionar todos" onchange="toggleSeleccionarTodos(this)" /></th>
     <th class="nombre">No. / Estudiante</th>
-    ${componentesTabla.map(c => `<th>${escapeHtml(c.nombre)}<br><small>(${c.puntos_max} pts)</small></th>`).join("")}
+    ${componentesTabla.map(c => `<th>${escapeHtml(c.nombre)}<br><small>(${c.puntos_max} pts)</small>${c.activo === false ? '<br><small style="color:#9aa5b1; font-weight:400;">(eliminado -- historial)</small>' : ""}</th>`).join("")}
     <th>Nota Final</th>
     <th>Status</th>
     <th>Clasificación</th>
@@ -698,7 +708,7 @@ function abrirModalComponentes() {
 
 function renderListaComponentes() {
   const cont = document.getElementById("lista-componentes");
-  const compManuales = componentesVisiblesEnTabla();
+  const compManuales = componentesGestionables();
   if (compManuales.length === 0) {
     cont.innerHTML = `<p style="color:#6b7280; font-size:13px;">Aún no hay componentes manuales. Las notas de asignaciones se administran desde "Salón de clases".</p>`;
     return;
@@ -728,9 +738,11 @@ async function guardarComponente(id) {
 }
 
 async function eliminarComponente(id, nombre) {
-  if (!confirm(`¿Eliminar el componente "${nombre}"? Las notas que ya pusiste ahí se mantienen guardadas y siguen contando en el promedio final -- solo desaparece de esta lista.`)) return;
-  // No se borra de verdad: se "archiva" (activo = false) para no perder las notas ya puestas,
-  // que deben seguir sumando al promedio de cada estudiante.
+  if (!confirm(`¿Eliminar el componente "${nombre}"? La columna y las notas que ya pusiste se quedan visibles en la tabla de Calificaciones (es el historial de la materia) y siguen contando en el promedio final. Solo deja de aparecer aquí, en "Componentes de nota", y en el selector de nota masiva.`)) return;
+  // No se borra de verdad: se "archiva" (activo = false). La columna y las notas
+  // siguen viéndose para siempre en la tabla de Calificaciones (componentesVisiblesEnTabla
+  // ya no filtra por "activo"); solo desaparece de esta lista de gestión y del selector
+  // de nota masiva (ver componentesGestionables()).
   const { error } = await window.sb.from("componentes").update({ activo: false }).eq("id", id);
   if (error) {
     alert("No se pudo eliminar: " + error.message);
