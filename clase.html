@@ -246,8 +246,11 @@
 
   <!-- Paso 3: Feed del Salón de Clases -->
   <div id="paso-feed" class="hidden">
+    <a href="clase.html" style="display:inline-flex; align-items:center; gap:6px; color:var(--gris); font-size:13px; font-weight:700; margin-bottom:10px;" id="link-volver-inicio">
+      <span id="volver-inicio-icon"></span> Volver a mis materias
+    </a>
     <!-- Hero de la clase -->
-    <div class="class-hero">
+    <div class="class-hero" id="class-hero">
       <div>
         <h1 id="hero-materia-nombre">Materia</h1>
         <p id="hero-profesor">Profesor</p>
@@ -282,11 +285,25 @@
     <div style="display:flex; gap:8px; margin-bottom:18px;">
       <button type="button" class="btn btn-primary" id="tab-est-novedades" style="padding:8px 18px; font-size:13px;" onclick="cambiarPestanaClaseEstudiante('novedades')">Novedades</button>
       <button type="button" class="btn btn-secondary" id="tab-est-trabajo" style="padding:8px 18px; font-size:13px;" onclick="cambiarPestanaClaseEstudiante('trabajo')">Trabajo de clase</button>
+      <button type="button" class="btn btn-secondary" id="tab-est-personas" style="padding:8px 18px; font-size:13px;" onclick="cambiarPestanaClaseEstudiante('personas')">Personas</button>
     </div>
 
     <!-- Vista: Novedades (anuncios del profesor) -->
     <div id="vista-est-novedades">
       <div id="lista-anuncios-estudiante" style="display:flex; flex-direction:column; gap:14px;"></div>
+    </div>
+
+    <!-- Vista: Personas (profesor + compañeros de clase registrados) -->
+    <div id="vista-est-personas" class="hidden">
+      <div class="card" style="margin-bottom:16px;">
+        <h2 style="color:var(--azul); margin:0 0 12px; font-size:16px;">Profesor</h2>
+        <div id="personas-profesor"></div>
+      </div>
+      <div class="card">
+        <h2 style="color:var(--azul); margin:0 0 4px; font-size:16px;">Compañeros de clase</h2>
+        <p style="color:var(--gris); margin:0 0 12px; font-size:13px;" id="personas-contador"></p>
+        <div id="personas-lista" style="display:flex; flex-direction:column; gap:2px;"></div>
+      </div>
     </div>
 
     <!-- Vista: Trabajo de clase (materiales + asignaciones) -->
@@ -376,6 +393,7 @@ async function inicializar() {
   document.getElementById("mis-materias-icon").innerHTML = Icon("users", 14);
   document.getElementById("home-notif-icon").innerHTML = Icon("bell", 16);
   document.getElementById("home-plus-icon").innerHTML = Icon("plus", 14);
+  document.getElementById("volver-inicio-icon").innerHTML = Icon("arrow-left", 14);
 
   actualizarMenuMisMaterias();
   window.addEventListener("click", (e) => {
@@ -698,6 +716,10 @@ async function cargarMateriaYEstudiantes() {
 
   materiaActual = mats[0];
   document.getElementById("topbar-title").textContent = materiaActual.nombre || "Salón de Clases";
+  // Mismo color determinístico por materia que se usa en el dashboard del profesor
+  // y en el encabezado de materia.html, para que se vea consistente en toda la app.
+  const heroEl = document.getElementById("class-hero");
+  if (heroEl && materiaActual.id) heroEl.style.background = colorMateria(materiaActual.id);
   document.getElementById("hero-materia-nombre").textContent = materiaActual.nombre || "Salón de Clases";
   document.getElementById("hero-profesor").textContent = (materiaActual.profesor ? `Prof. ${materiaActual.profesor}` : "") +
     (materiaActual.periodo ? ` · ${materiaActual.periodo} ${materiaActual.año || ""}` : "");
@@ -818,27 +840,55 @@ function tarjetaMaterialClaseHtml(m) {
 }
 
 function cambiarPestanaClaseEstudiante(pestana) {
-  const tabNov = document.getElementById("tab-est-novedades");
-  const tabTrab = document.getElementById("tab-est-trabajo");
-  const vistaNov = document.getElementById("vista-est-novedades");
-  const vistaTrab = document.getElementById("vista-est-trabajo");
-  if (!tabNov || !tabTrab || !vistaNov || !vistaTrab) return;
+  const tabs = {
+    novedades: { tab: document.getElementById("tab-est-novedades"), vista: document.getElementById("vista-est-novedades") },
+    trabajo: { tab: document.getElementById("tab-est-trabajo"), vista: document.getElementById("vista-est-trabajo") },
+    personas: { tab: document.getElementById("tab-est-personas"), vista: document.getElementById("vista-est-personas") }
+  };
+  if (!tabs.novedades.tab || !tabs.trabajo.tab || !tabs.personas.tab) return;
 
-  if (pestana === "trabajo") {
-    tabNov.className = "btn btn-secondary";
-    tabTrab.className = "btn btn-primary";
-    vistaNov.classList.add("hidden");
-    vistaTrab.classList.remove("hidden");
-  } else {
-    tabNov.className = "btn btn-primary";
-    tabTrab.className = "btn btn-secondary";
-    vistaNov.classList.remove("hidden");
-    vistaTrab.classList.add("hidden");
+  Object.keys(tabs).forEach(key => {
+    const activo = key === pestana;
+    tabs[key].tab.className = activo ? "btn btn-primary" : "btn btn-secondary";
+    tabs[key].tab.style.padding = "8px 18px";
+    tabs[key].tab.style.fontSize = "13px";
+    tabs[key].vista.classList.toggle("hidden", !activo);
+  });
+
+  if (pestana === "personas") renderPersonas();
+}
+
+function renderPersonas() {
+  const contProfesor = document.getElementById("personas-profesor");
+  const contador = document.getElementById("personas-contador");
+  const lista = document.getElementById("personas-lista");
+  if (!contProfesor || !lista) return;
+
+  const nombreProfesor = (materiaActual && materiaActual.profesor) ? materiaActual.profesor : "—";
+  const inicialProfesor = nombreProfesor.trim().charAt(0).toUpperCase() || "?";
+  contProfesor.innerHTML = `
+    <div style="display:flex; align-items:center; gap:10px; padding:6px 0;">
+      <div style="width:38px; height:38px; border-radius:50%; background:var(--azul-claro); color:var(--azul); display:flex; align-items:center; justify-content:center; font-weight:800; font-size:15px; flex-shrink:0;">${escapeHtml(inicialProfesor)}</div>
+      <span style="font-weight:700; color:var(--texto);">${escapeHtml(nombreProfesor)}</span>
+    </div>
+  `;
+
+  const ests = (estudiantesActuales || []).slice().sort((a, b) => (a.no_orden || 0) - (b.no_orden || 0));
+  contador.textContent = `${ests.length} estudiante(s)`;
+  if (ests.length === 0) {
+    lista.innerHTML = `<p style="font-size:13px; color:var(--gris); text-align:center; padding:10px;">Aún no hay estudiantes registrados en esta materia.</p>`;
+    return;
   }
-  document.getElementById("tab-est-novedades").style.padding = "8px 18px";
-  document.getElementById("tab-est-novedades").style.fontSize = "13px";
-  document.getElementById("tab-est-trabajo").style.padding = "8px 18px";
-  document.getElementById("tab-est-trabajo").style.fontSize = "13px";
+  lista.innerHTML = ests.map(e => {
+    const inicial = (e.nombre || "?").trim().charAt(0).toUpperCase();
+    const esYo = e.id === estudianteIdActual;
+    return `
+      <div style="display:flex; align-items:center; gap:10px; padding:8px 6px; border-bottom:1px solid var(--borde);">
+        <div style="width:34px; height:34px; border-radius:50%; background:${esYo ? "var(--cyan)" : "#eef2f6"}; color:${esYo ? "white" : "var(--texto)"}; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:13px; flex-shrink:0;">${escapeHtml(inicial)}</div>
+        <span style="font-size:13.5px; color:var(--texto);">${e.no_orden ? e.no_orden + ". " : ""}${escapeHtml(e.nombre)}${esYo ? " (tú)" : ""}</span>
+      </div>
+    `;
+  }).join("");
 }
 
 async function cargarAnunciosEstudiante() {
