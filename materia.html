@@ -201,8 +201,11 @@
 
       <!-- Constructor de preguntas para asignaciones tipo cuestionario -->
       <div id="bloque-cuestionario" class="hidden">
-        <label>Puntos totales del cuestionario: <strong id="cuestionario-total-puntos">0</strong> (suma automática de las preguntas)</label>
-        <div id="preguntas-builder-cont" style="display:flex; flex-direction:column; gap:12px; margin-bottom:12px;"></div>
+        <div style="display:flex; align-items:center; justify-content:space-between; border-top:1px solid var(--borde); padding-top:14px; margin-bottom:10px;">
+          <h4 style="color:var(--azul); margin:0; font-size:15px;">Preguntas del cuestionario</h4>
+          <span style="font-size:13px; color:var(--gris);">Total: <strong id="cuestionario-total-puntos" style="color:var(--azul);">0</strong> pts</span>
+        </div>
+        <div id="preguntas-builder-cont"></div>
         <button type="button" class="btn btn-secondary" style="margin-bottom:14px;" onclick="agregarPreguntaBuilder()">+ Agregar pregunta</button>
       </div>
 

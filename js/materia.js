@@ -913,7 +913,17 @@ function etiquetaTipoAsignacion(tipo) {
   return mapa[tipo] || { icono: "pin", texto: tipo };
 }
 
+const COLORES_KAHOOT = [
+  { bg: "#e21b3c", claro: "#fdeaec" },
+  { bg: "#1368ce", claro: "#e8f0fc" },
+  { bg: "#ffa602", claro: "#fff4e0" },
+  { bg: "#26890c", claro: "#e9f5e6" }
+];
+
+let dragIdxPregunta = null;
+
 function agregarPreguntaBuilder() {
+  preguntasBuilder.forEach(p => { p.colapsada = true; });
   preguntasBuilder.push({
     tipo: "opcion_multiple",
     enunciado: "",
@@ -921,13 +931,42 @@ function agregarPreguntaBuilder() {
     opciones: ["", ""],
     correctaIndex: 0,
     correctaVF: true,
-    respuestaTexto: ""
+    respuestaTexto: "",
+    colapsada: false
   });
   renderPreguntasBuilder();
 }
 
 function eliminarPreguntaBuilder(idx) {
   preguntasBuilder.splice(idx, 1);
+  renderPreguntasBuilder();
+}
+
+function duplicarPreguntaBuilder(idx) {
+  const copia = JSON.parse(JSON.stringify(preguntasBuilder[idx]));
+  copia.colapsada = false;
+  preguntasBuilder.splice(idx + 1, 0, copia);
+  renderPreguntasBuilder();
+}
+
+function toggleColapsarPregunta(idx) {
+  preguntasBuilder[idx].colapsada = !preguntasBuilder[idx].colapsada;
+  renderPreguntasBuilder();
+}
+
+function dragStartPregunta(idx) {
+  dragIdxPregunta = idx;
+}
+
+function dragOverPreguntaCard(e) {
+  e.preventDefault();
+}
+
+function dropPreguntaCard(idxDestino) {
+  if (dragIdxPregunta === null || dragIdxPregunta === idxDestino) return;
+  const [movida] = preguntasBuilder.splice(dragIdxPregunta, 1);
+  preguntasBuilder.splice(idxDestino, 0, movida);
+  dragIdxPregunta = null;
   renderPreguntasBuilder();
 }
 
@@ -970,50 +1009,83 @@ function renderPreguntasBuilder() {
     return;
   }
 
-  cont.innerHTML = preguntasBuilder.map((p, idx) => `
-    <div style="border:1px solid #dfe3e8; border-radius:10px; padding:12px;">
-      <div style="display:flex; gap:8px; align-items:flex-start; margin-bottom:8px;">
-        <strong style="color:#16305c; font-size:13px; margin-top:8px;">P${idx + 1}</strong>
-        <select style="flex:1; margin:0;" onchange="cambiarTipoPreguntaBuilder(${idx}, this.value)">
+  cont.innerHTML = preguntasBuilder.map((p, idx) => {
+    const color = COLORES_KAHOOT[idx % COLORES_KAHOOT.length];
+    const previewTexto = (p.enunciado || "").trim() || "(sin escribir todavía)";
+
+    if (p.colapsada) {
+      return `
+        <div class="qcard qcard-colapsada" draggable="true"
+          ondragstart="dragStartPregunta(${idx})" ondragover="dragOverPreguntaCard(event)" ondrop="dropPreguntaCard(${idx})"
+          style="border-left-color:${color.bg};">
+          <span class="qcard-drag" title="Arrastra para reordenar">${Icon("grip-vertical")}</span>
+          <strong class="qcard-numero">P${idx + 1}</strong>
+          <span class="qcard-resumen" onclick="toggleColapsarPregunta(${idx})">${escapeHtml(previewTexto)}</span>
+          <span class="qbadge-tipo">${etiquetaTipoPregunta(p.tipo)}</span>
+          <span class="qbadge-puntos">${p.puntos} pts</span>
+          <button type="button" class="btn btn-secondary qcard-icon-btn" title="Expandir" onclick="toggleColapsarPregunta(${idx})">${Icon("chevron-down")}</button>
+          <button type="button" class="btn btn-secondary qcard-icon-btn" title="Duplicar" onclick="duplicarPreguntaBuilder(${idx})">${Icon("copy")}</button>
+          <button type="button" class="btn btn-danger qcard-icon-btn" title="Eliminar" onclick="eliminarPreguntaBuilder(${idx})">${Icon("x")}</button>
+        </div>
+      `;
+    }
+
+    return `
+    <div class="qcard" draggable="true"
+      ondragstart="dragStartPregunta(${idx})" ondragover="dragOverPreguntaCard(event)" ondrop="dropPreguntaCard(${idx})"
+      style="border-left-color:${color.bg};">
+      <div class="qcard-header">
+        <span class="qcard-drag" title="Arrastra para reordenar">${Icon("grip-vertical")}</span>
+        <strong class="qcard-numero">P${idx + 1}</strong>
+        <select class="qcard-select-tipo" onchange="cambiarTipoPreguntaBuilder(${idx}, this.value)">
           <option value="opcion_multiple" ${p.tipo === "opcion_multiple" ? "selected" : ""}>Selección múltiple</option>
           <option value="verdadero_falso" ${p.tipo === "verdadero_falso" ? "selected" : ""}>Verdadero / Falso</option>
           <option value="completar" ${p.tipo === "completar" ? "selected" : ""}>Llena y completa</option>
         </select>
         <input type="number" step="0.01" min="0" value="${p.puntos}" title="Puntos de esta pregunta"
-          style="width:80px; margin:0;"
+          class="qcard-input-puntos"
           oninput="preguntasBuilder[${idx}].puntos = parseFloat(this.value) || 0; actualizarTotalPreguntasBuilder();" />
-        <button type="button" class="btn btn-danger" style="padding:4px 8px; font-size:12px;" onclick="eliminarPreguntaBuilder(${idx})">${Icon("x")}</button>
+        <button type="button" class="btn btn-secondary qcard-icon-btn" title="Colapsar" onclick="toggleColapsarPregunta(${idx})">${Icon("chevron-up")}</button>
+        <button type="button" class="btn btn-secondary qcard-icon-btn" title="Duplicar pregunta" onclick="duplicarPreguntaBuilder(${idx})">${Icon("copy")}</button>
+        <button type="button" class="btn btn-danger qcard-icon-btn" title="Eliminar pregunta" onclick="eliminarPreguntaBuilder(${idx})">${Icon("x")}</button>
       </div>
       <input type="text" placeholder="Escribe la pregunta" value="${escapeHtml(p.enunciado)}"
-        style="margin-bottom:10px;"
+        class="qcard-input-enunciado"
         oninput="preguntasBuilder[${idx}].enunciado = this.value" />
 
       ${p.tipo === "opcion_multiple" ? `
-        <div style="display:flex; flex-direction:column; gap:6px;">
-          ${p.opciones.map((op, oIdx) => `
-            <div style="display:flex; gap:6px; align-items:center;">
-              <input type="radio" name="correcta-${idx}" ${p.correctaIndex === oIdx ? "checked" : ""}
-                onchange="preguntasBuilder[${idx}].correctaIndex = ${oIdx}" title="Marcar como respuesta correcta" />
-              <input type="text" placeholder="Opción ${oIdx + 1}" value="${escapeHtml(op)}" style="margin:0; flex:1;"
+        <div class="qopciones-cont">
+          ${p.opciones.map((op, oIdx) => {
+            const colorOp = COLORES_KAHOOT[oIdx % COLORES_KAHOOT.length];
+            const esCorrecta = p.correctaIndex === oIdx;
+            return `
+            <div class="qopcion-fila ${esCorrecta ? "qopcion-correcta" : ""}" style="--color-opcion:${colorOp.bg}; --color-opcion-claro:${colorOp.claro};">
+              <span class="qopcion-letra">${String.fromCharCode(65 + oIdx)}</span>
+              <input type="text" placeholder="Opción ${oIdx + 1}" value="${escapeHtml(op)}" class="qopcion-input"
                 oninput="preguntasBuilder[${idx}].opciones[${oIdx}] = this.value" />
-              <button type="button" class="btn btn-secondary" style="padding:2px 8px; font-size:11px;" onclick="eliminarOpcionBuilder(${idx}, ${oIdx})">${Icon("x")}</button>
+              <button type="button" class="qopcion-marcar" title="Marcar como respuesta correcta"
+                onclick="preguntasBuilder[${idx}].correctaIndex = ${oIdx}; renderPreguntasBuilder();">
+                ${esCorrecta ? Icon("check-circle") : Icon("circle")}
+              </button>
+              <button type="button" class="btn btn-secondary qcard-icon-btn" title="Quitar opción" onclick="eliminarOpcionBuilder(${idx}, ${oIdx})">${Icon("x")}</button>
             </div>
-          `).join("")}
+          `;
+          }).join("")}
         </div>
         <button type="button" class="btn btn-secondary" style="padding:4px 8px; font-size:12px; margin-top:6px;" onclick="agregarOpcionBuilder(${idx})">+ Opción</button>
-        <p style="color:#6b7280; font-size:12px; margin:6px 0 0;">Marca el círculo junto a la opción correcta.</p>
+        <p style="color:#6b7280; font-size:12px; margin:6px 0 0;">Toca el círculo junto a la opción correcta.</p>
       ` : ""}
 
       ${p.tipo === "verdadero_falso" ? `
-        <div style="display:flex; gap:16px;">
-          <label style="display:flex; align-items:center; gap:6px; font-weight:400; margin:0;">
-            <input type="radio" name="correcta-${idx}" ${p.correctaVF === true ? "checked" : ""}
-              onchange="preguntasBuilder[${idx}].correctaVF = true" /> Verdadero
-          </label>
-          <label style="display:flex; align-items:center; gap:6px; font-weight:400; margin:0;">
-            <input type="radio" name="correcta-${idx}" ${p.correctaVF === false ? "checked" : ""}
-              onchange="preguntasBuilder[${idx}].correctaVF = false" /> Falso
-          </label>
+        <div class="qvf-cont">
+          <button type="button" class="qvf-btn qvf-verdadero ${p.correctaVF === true ? "qvf-selected" : ""}"
+            onclick="preguntasBuilder[${idx}].correctaVF = true; renderPreguntasBuilder();">
+            ${p.correctaVF === true ? Icon("check-circle") : ""} Verdadero
+          </button>
+          <button type="button" class="qvf-btn qvf-falso ${p.correctaVF === false ? "qvf-selected" : ""}"
+            onclick="preguntasBuilder[${idx}].correctaVF = false; renderPreguntasBuilder();">
+            ${p.correctaVF === false ? Icon("check-circle") : ""} Falso
+          </button>
         </div>
       ` : ""}
 
@@ -1024,9 +1096,19 @@ function renderPreguntasBuilder() {
         <p style="color:#6b7280; font-size:12px; margin:6px 0 0;">El estudiante escribirá la respuesta; no distingue mayúsculas/minúsculas ni espacios extra.</p>
       ` : ""}
     </div>
-  `).join("");
+  `;
+  }).join("");
 
   actualizarTotalPreguntasBuilder();
+}
+
+function etiquetaTipoPregunta(tipo) {
+  const mapa = {
+    opcion_multiple: "Selección múltiple",
+    verdadero_falso: "Verdadero/Falso",
+    completar: "Llena y completar"
+  };
+  return mapa[tipo] || tipo;
 }
 
 function formatoFecha(f) {

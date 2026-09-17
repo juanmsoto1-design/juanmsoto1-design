@@ -970,3 +970,213 @@ input.celda-nota:focus {
   opacity: .9;
   margin-top: 1px;
 }
+
+/* ---------- Constructor de preguntas (tarjetas estilo Kahoot/Forms) ---------- */
+.qcard {
+  background: white;
+  border: 1px solid var(--borde);
+  border-left: 5px solid var(--cyan);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  transition: box-shadow .15s ease;
+}
+
+.qcard:hover {
+  box-shadow: 0 2px 10px rgba(60, 64, 67, 0.10);
+}
+
+.qcard.qcard-colapsada {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+
+.qcard-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.qcard-drag {
+  cursor: grab;
+  color: #9aa0a6;
+  display: flex;
+  flex-shrink: 0;
+}
+
+.qcard-drag:active {
+  cursor: grabbing;
+}
+
+.qcard-numero {
+  color: var(--azul);
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.qcard-select-tipo {
+  flex: 1;
+  min-width: 140px;
+  margin: 0;
+}
+
+.qcard-input-puntos {
+  width: 72px;
+  margin: 0;
+  flex-shrink: 0;
+}
+
+.qcard-icon-btn {
+  padding: 5px 8px;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.qcard-input-enunciado {
+  width: 100%;
+  border: none;
+  border-bottom: 2px solid var(--borde);
+  border-radius: 0;
+  font-size: 15px;
+  font-weight: 600;
+  padding: 6px 2px 8px;
+  margin-bottom: 12px;
+  background: transparent;
+}
+
+.qcard-input-enunciado:focus {
+  outline: none;
+  border-bottom-color: var(--cyan);
+}
+
+.qcard-resumen {
+  flex: 1;
+  font-size: 13.5px;
+  color: #3c4043;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.qbadge-tipo, .qbadge-puntos {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: #f1f3f4;
+  color: var(--gris);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.qopciones-cont {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.qopcion-fila {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--color-opcion-claro, #f8f9fa);
+  border: 2px solid transparent;
+  border-radius: 8px;
+  padding: 4px 8px;
+  transition: border-color .15s ease;
+}
+
+.qopcion-fila.qopcion-correcta {
+  border-color: var(--color-opcion, var(--cyan));
+}
+
+.qopcion-letra {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--color-opcion, #9aa0a6);
+  color: white;
+  font-weight: 800;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.qopcion-input {
+  flex: 1;
+  margin: 0;
+  background: transparent;
+  border: none;
+  font-size: 14px;
+  padding: 6px 2px;
+}
+
+.qopcion-input:focus {
+  outline: none;
+}
+
+.qopcion-marcar {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-opcion, #9aa0a6);
+  display: flex;
+  align-items: center;
+  padding: 2px;
+  flex-shrink: 0;
+}
+
+.qvf-cont {
+  display: flex;
+  gap: 10px;
+}
+
+.qvf-btn {
+  flex: 1;
+  padding: 12px;
+  border-radius: 8px;
+  border: 2px solid transparent;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: white;
+}
+
+.qvf-verdadero {
+  background: #1368ce;
+}
+
+.qvf-falso {
+  background: #e21b3c;
+}
+
+.qvf-btn:not(.qvf-selected) {
+  opacity: 0.55;
+}
+
+.qvf-btn.qvf-selected {
+  border-color: #16305c;
+  opacity: 1;
+}
+
+@media (max-width: 640px) {
+  .qcard-header {
+    gap: 6px;
+  }
+  .qcard-select-tipo {
+    min-width: 100%;
+    order: 3;
+  }
+}
