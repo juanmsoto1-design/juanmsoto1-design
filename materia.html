@@ -84,18 +84,36 @@
         <button class="btn btn-primary" style="padding:10px 22px; font-size:14px; font-weight:700;" onclick="abrirSelectorContenido()">+ Crear contenido</button>
       </div>
 
-      <div class="card" style="margin-bottom:20px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
-          <div>
-            <h3 style="margin:0; color:var(--azul); font-size:16px;"><span data-icon="paperclip" data-icon-size="15"></span> Materiales de la clase</h3>
-            <p style="color:var(--gris); margin:2px 0 0; font-size:12px;">Libros, PPT, documentos Word, videos y artículos para tus estudiantes.</p>
-          </div>
-          <button class="btn btn-secondary" onclick="abrirModalMaterial()">+ Agregar material</button>
-        </div>
-        <div id="lista-materiales" style="display:flex; flex-direction:column; gap:8px;"></div>
-      </div>
+      <div id="kpis-salon" class="kpi-row"></div>
 
-      <div id="feed-profesor-asignaciones" style="display:flex; flex-direction:column; gap:14px;"></div>
+      <div class="salon-grid">
+        <div class="salon-col-principal">
+          <div class="feed-tabs">
+            <button type="button" class="feed-tab-btn active" id="feed-tab-todas" onclick="filtrarFeedAsignaciones('todas')">Todas</button>
+            <button type="button" class="feed-tab-btn" id="feed-tab-tareas" onclick="filtrarFeedAsignaciones('tareas')">Tareas / Asignaciones</button>
+            <button type="button" class="feed-tab-btn" id="feed-tab-examenes" onclick="filtrarFeedAsignaciones('examenes')">Exámenes / Quizzes</button>
+          </div>
+          <div id="feed-profesor-asignaciones" style="display:flex; flex-direction:column; gap:14px;"></div>
+        </div>
+
+        <div class="salon-col-lateral">
+          <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
+              <div>
+                <h3 style="margin:0; color:var(--azul); font-size:16px;"><span data-icon="paperclip" data-icon-size="15"></span> Materiales de la clase</h3>
+                <p style="color:var(--gris); margin:2px 0 0; font-size:12px;">Libros, PPT, documentos Word, videos y artículos.</p>
+              </div>
+              <button class="btn btn-secondary" onclick="abrirModalMaterial()">+ Agregar</button>
+            </div>
+            <div id="lista-materiales" style="display:flex; flex-direction:column; gap:8px;"></div>
+          </div>
+
+          <div class="card" style="margin-top:16px;">
+            <h3 style="margin:0 0 10px; color:var(--azul); font-size:15px;"><span data-icon="calendar" data-icon-size="15"></span> Próximas entregas</h3>
+            <div id="lista-proximas-entregas"></div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 

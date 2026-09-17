@@ -13,6 +13,7 @@ let perfilActual = null;
 let materiales = [];
 let anuncios = [];
 let anuncioEditandoId = null;
+let filtroFeedActual = "todas";
 const EXTENSIONES_MATERIAL_VALIDAS = [".pdf", ".doc", ".docx", ".ppt", ".pptx"];
 
 function escapeHtml(str) {
@@ -165,6 +166,8 @@ async function cargarTodo() {
   renderAlertaRiesgo();
   renderListaAsignaciones();
   renderListaMateriales();
+  renderKpisSalon();
+  renderProximasEntregas();
 }
 
 // ---------- Gestión de secretarios por materia (solo profesor dueño o administrador) ----------
@@ -1457,6 +1460,81 @@ async function publicarComentarioProfesor(anuncioId) {
   await cargarAnuncios();
 }
 
+function filtrarFeedAsignaciones(modo) {
+  filtroFeedActual = modo;
+  ["todas", "tareas", "examenes"].forEach(m => {
+    const btn = document.getElementById(`feed-tab-${m}`);
+    if (btn) btn.classList.toggle("active", m === modo);
+  });
+  renderListaAsignaciones();
+}
+
+function renderKpisSalon() {
+  const cont = document.getElementById("kpis-salon");
+  if (!cont) return;
+
+  const totalEstudiantes = estudiantes.length;
+  const tareasPendientes = entregasGlobales.filter(e => e.puntuacion === null || e.puntuacion === undefined).length;
+
+  let promedioTexto = "—";
+  if (totalEstudiantes > 0) {
+    const suma = estudiantes.reduce((s, est) => s + calcularNotaFinal(est.id), 0);
+    promedioTexto = (suma / totalEstudiantes).toFixed(1);
+  }
+
+  const hoy = new Date().toISOString().slice(0, 10);
+  const proximaAsig = (asignaciones || [])
+    .filter(a => a.tipo === "cuestionario" && a.fecha_entrega && a.fecha_entrega >= hoy)
+    .sort((a, b) => new Date(a.fecha_entrega) - new Date(b.fecha_entrega))[0];
+  const proximaTexto = proximaAsig ? formatoFecha(proximaAsig.fecha_entrega) : "Ninguna programada";
+  const proximaSub = proximaAsig ? proximaAsig.titulo : "Próximo examen";
+
+  cont.innerHTML = `
+    <div class="kpi-card">
+      <div class="kpi-card-icono" style="background:var(--azul-claro); color:var(--azul);">${Icon("users", 18)}</div>
+      <div class="kpi-valor">${totalEstudiantes}</div>
+      <div class="kpi-etiqueta">Estudiantes inscritos</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-card-icono" style="background:#fff4e0; color:#d89e00;">${Icon("clipboard", 18)}</div>
+      <div class="kpi-valor">${tareasPendientes}</div>
+      <div class="kpi-etiqueta">Entregas por calificar</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-card-icono" style="background:#e9f5e6; color:#26890c;">${Icon("chart", 18)}</div>
+      <div class="kpi-valor">${promedioTexto}</div>
+      <div class="kpi-etiqueta">Promedio general del curso</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-card-icono" style="background:#fdeaec; color:#e21b3c;">${Icon("brain", 18)}</div>
+      <div class="kpi-valor" style="font-size:16px;">${proximaTexto}</div>
+      <div class="kpi-etiqueta">${escapeHtml(proximaSub)}</div>
+    </div>
+  `;
+}
+
+function renderProximasEntregas() {
+  const cont = document.getElementById("lista-proximas-entregas");
+  if (!cont) return;
+  const hoy = new Date().toISOString().slice(0, 10);
+  const proximas = (asignaciones || [])
+    .filter(a => a.fecha_entrega && a.fecha_entrega >= hoy)
+    .sort((a, b) => new Date(a.fecha_entrega) - new Date(b.fecha_entrega))
+    .slice(0, 6);
+
+  if (proximas.length === 0) {
+    cont.innerHTML = `<p style="color:var(--gris); font-size:12.5px; margin:0;">No hay fechas de cierre próximas.</p>`;
+    return;
+  }
+
+  cont.innerHTML = proximas.map(a => `
+    <div class="proxima-entrega-fila">
+      <span>${escapeHtml(a.titulo)}</span>
+      <span class="proxima-entrega-fecha">${formatoFecha(a.fecha_entrega)}</span>
+    </div>
+  `).join("");
+}
+
 function renderListaAsignaciones() {
   const cont = document.getElementById("feed-profesor-asignaciones") || document.getElementById("lista-asignaciones");
   if (!cont) return;
@@ -1473,8 +1551,20 @@ function renderListaAsignaciones() {
     return;
   }
 
+  const asignacionesFiltradas = asignaciones.filter(a => {
+    if (filtroFeedActual === "tareas") return a.tipo !== "cuestionario";
+    if (filtroFeedActual === "examenes") return a.tipo === "cuestionario";
+    return true;
+  });
+
+  if (asignacionesFiltradas.length === 0) {
+    const etiquetaFiltro = filtroFeedActual === "tareas" ? "tareas" : "exámenes";
+    cont.innerHTML = `<div class="card" style="padding:30px 20px; text-align:center; color:var(--gris);">No hay ${etiquetaFiltro} en esta materia todavía.</div>`;
+    return;
+  }
+
   // Ordenar de la más reciente a la más antigua
-  const asignacionesOrdenadas = [...asignaciones].sort((a, b) => {
+  const asignacionesOrdenadas = [...asignacionesFiltradas].sort((a, b) => {
     return new Date(b.created_at || b.fecha_asignada || b.id) - new Date(a.created_at || a.fecha_asignada || a.id);
   });
 
