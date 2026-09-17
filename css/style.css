@@ -1180,3 +1180,53 @@ input.celda-nota:focus {
     order: 3;
   }
 }
+
+/* ---------- Selector de modo: Tarea vs Examen ---------- */
+.modo-card {
+  flex: 1;
+  min-width: 220px;
+  border: 2px solid var(--borde);
+  border-radius: 14px;
+  padding: 20px;
+  cursor: pointer;
+  transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+  text-align: center;
+}
+
+.modo-card:hover {
+  border-color: var(--cyan);
+  box-shadow: 0 6px 18px rgba(30, 142, 62, 0.15);
+  transform: translateY(-2px);
+}
+
+.modo-card h4 {
+  color: var(--azul);
+  margin: 4px 0 6px;
+  font-size: 16px;
+}
+
+.modo-card p {
+  color: var(--gris);
+  font-size: 12.5px;
+  margin: 0;
+}
+
+.modo-card-icono {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 10px;
+}
+
+.modo-card-icono-tarea {
+  background: var(--azul-claro);
+  color: var(--azul);
+}
+
+.modo-card-icono-examen {
+  background: #fff4e0;
+  color: #d89e00;
+}

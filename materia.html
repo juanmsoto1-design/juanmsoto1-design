@@ -81,7 +81,7 @@
     <div id="subvista-trabajo" class="hidden">
       <div style="display:flex; justify-content:flex-end; gap:8px; flex-wrap:wrap; margin-bottom:18px;">
         <button class="btn btn-secondary" onclick="abrirReporteAsignaciones()"><span data-icon="pie-chart" data-icon-size="14"></span> Reporte de asignaciones</button>
-        <button class="btn btn-primary" style="padding:10px 22px; font-size:14px; font-weight:700;" onclick="abrirModalAsignaciones()">+ Crear asignación</button>
+        <button class="btn btn-primary" style="padding:10px 22px; font-size:14px; font-weight:700;" onclick="abrirSelectorContenido()">+ Crear contenido</button>
       </div>
 
       <div class="card" style="margin-bottom:20px;">
@@ -142,6 +142,29 @@
 </div>
 
 <!-- Modal asignaciones -->
+<!-- Selector de modo: Tarea vs Examen -->
+<div id="modal-selector-contenido" class="modal-backdrop hidden">
+  <div class="modal" style="max-width:640px;">
+    <h3 style="color:var(--azul);">+ Crear contenido</h3>
+    <p style="color:var(--gris); font-size:13px; margin-top:-8px;">Elige qué tipo de actividad quieres crear para tus estudiantes.</p>
+    <div style="display:flex; gap:16px; flex-wrap:wrap; margin-top:18px;">
+      <div class="modo-card" onclick="iniciarFlujoTarea()">
+        <div class="modo-card-icono modo-card-icono-tarea"><span data-icon="pencil-note" data-icon-size="26"></span></div>
+        <h4>Tarea / Asignación</h4>
+        <p>Redacciones, proyectos, lecturas, exégesis, vocabulario o foro de discusión.</p>
+      </div>
+      <div class="modo-card" onclick="iniciarFlujoExamen()">
+        <div class="modo-card-icono modo-card-icono-examen"><span data-icon="brain" data-icon-size="26"></span></div>
+        <h4>Examen / Quiz</h4>
+        <p>Preguntas de selección múltiple, Verdadero/Falso o completar. Se califica automáticamente.</p>
+      </div>
+    </div>
+    <div style="text-align:right; margin-top:18px;">
+      <button type="button" class="btn btn-secondary" onclick="cerrarModal('modal-selector-contenido')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
 <div id="modal-asignaciones" class="modal-backdrop hidden">
   <div class="modal" style="max-width:720px;">
     <h3 style="color:var(--azul);" id="modal-asignaciones-titulo">+ Crear asignación</h3>
@@ -151,17 +174,19 @@
       <label for="a-titulo">Título de la asignación</label>
       <input id="a-titulo" required placeholder="Ej: Ensayo capítulo 3" />
 
-      <label for="a-tipo">Tipo de asignación</label>
-      <select id="a-tipo" onchange="onCambioTipoAsignacion()">
-        <option value="texto_libre">Texto libre (ensayo corto, desarrollo)</option>
-        <option value="cuestionario">Cuestionario (selección múltiple, V/F, completar)</option>
-        <option value="ensayo">Ensayo (con archivo PDF/Word)</option>
-        <option value="reporte_lectura">Reporte de lectura (con archivo PDF/Word)</option>
-        <option value="exegesis">Exégesis (con archivo PDF/Word)</option>
-        <option value="presentacion">Presentación PPT (con archivo)</option>
-        <option value="vocabulario">Vocabulario / Verbos (traducción, para idiomas bíblicos)</option>
-        <option value="foro">Foro de discusión (tema para comentar y responder entre compañeros)</option>
-      </select>
+      <div id="bloque-tipo-asignacion">
+        <label for="a-tipo">Tipo de asignación</label>
+        <select id="a-tipo" onchange="onCambioTipoAsignacion()">
+          <option value="texto_libre">Texto libre (ensayo corto, desarrollo)</option>
+          <option value="cuestionario" id="opcion-tipo-cuestionario">Cuestionario (selección múltiple, V/F, completar)</option>
+          <option value="ensayo">Ensayo (con archivo PDF/Word)</option>
+          <option value="reporte_lectura">Reporte de lectura (con archivo PDF/Word)</option>
+          <option value="exegesis">Exégesis (con archivo PDF/Word)</option>
+          <option value="presentacion">Presentación PPT (con archivo)</option>
+          <option value="vocabulario">Vocabulario / Verbos (traducción, para idiomas bíblicos)</option>
+          <option value="foro">Foro de discusión (tema para comentar y responder entre compañeros)</option>
+        </select>
+      </div>
 
       <label for="a-descripcion">Descripción / instrucciones (opcional)</label>
       <textarea id="a-descripcion" rows="4" placeholder="Escribe aquí instrucciones generales o el contenido de la asignación" style="width:100%; padding:10px 12px; border:1px solid var(--borde); border-radius:6px; font-size:14px; margin-bottom:14px; font-family:inherit; resize:vertical;"></textarea>

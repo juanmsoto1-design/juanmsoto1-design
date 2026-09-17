@@ -762,12 +762,42 @@ function pobrarSelectMaterialLectura(materialVinculadoId) {
   if (materialVinculadoId) selMaterial.value = materialVinculadoId;
 }
 
+function restaurarSelectorTipoAsignacion() {
+  document.getElementById("bloque-tipo-asignacion").classList.remove("hidden");
+  const opcionCuestionario = document.getElementById("opcion-tipo-cuestionario");
+  if (opcionCuestionario) opcionCuestionario.style.display = "";
+}
+
+function abrirSelectorContenido() {
+  document.getElementById("modal-selector-contenido").classList.remove("hidden");
+}
+
+function iniciarFlujoTarea() {
+  cerrarModal("modal-selector-contenido");
+  abrirModalAsignaciones();
+  const opcionCuestionario = document.getElementById("opcion-tipo-cuestionario");
+  if (opcionCuestionario) opcionCuestionario.style.display = "none";
+  document.getElementById("modal-asignaciones-titulo").textContent = "+ Crear tarea";
+  document.getElementById("modal-asignaciones-subtitulo").textContent = "Redacciones, proyectos, lecturas y otros trabajos. Al guardarse aparecerá en el feed de Salón de clases con su código y QR para los estudiantes.";
+}
+
+function iniciarFlujoExamen() {
+  cerrarModal("modal-selector-contenido");
+  abrirModalAsignaciones();
+  document.getElementById("a-tipo").value = "cuestionario";
+  onCambioTipoAsignacion();
+  document.getElementById("bloque-tipo-asignacion").classList.add("hidden");
+  document.getElementById("modal-asignaciones-titulo").textContent = "+ Crear examen / quiz";
+  document.getElementById("modal-asignaciones-subtitulo").textContent = "Preguntas de selección múltiple, Verdadero/Falso y completar. Se califica automáticamente. Al guardarse aparecerá en el feed de Salón de clases con su código y QR para los estudiantes.";
+}
+
 function abrirModalAsignaciones() {
   asignacionEditandoId = null;
   document.getElementById("asignacion-error").textContent = "";
   document.getElementById("form-asignacion").reset();
   preguntasBuilder = [];
   vocabularioBuilder = [];
+  restaurarSelectorTipoAsignacion();
   document.getElementById("a-tipo").value = "texto_libre";
   onCambioTipoAsignacion();
   renderPreguntasBuilder();
@@ -792,6 +822,7 @@ async function editarAsignacion(id) {
   document.getElementById("form-asignacion").reset();
   preguntasBuilder = [];
   vocabularioBuilder = [];
+  restaurarSelectorTipoAsignacion();
 
   document.getElementById("a-titulo").value = a.titulo || "";
   document.getElementById("a-tipo").value = a.tipo || "texto_libre";
@@ -1436,7 +1467,7 @@ function renderListaAsignaciones() {
         <div style="font-size:42px; margin-bottom:10px;">${Icon("book", 42)}</div>
         <h3 style="color:var(--azul); margin:0 0 6px;">No hay asignaciones aún</h3>
         <p style="color:var(--gris); margin:0 0 16px;">Comienza creando la primera asignación de esta materia para tus estudiantes.</p>
-        <button class="btn btn-primary" onclick="abrirModalAsignaciones()">+ Crear asignación</button>
+        <button class="btn btn-primary" onclick="abrirSelectorContenido()">+ Crear contenido</button>
       </div>
     `;
     return;
